@@ -1,55 +1,68 @@
-# Prerequisites
-*.d
+#.Net
+# Build results
+bin/
+obj/
+out/
 
-# Object files
-*.o
-*.ko
-*.obj
-*.elf
+# Visual Studio / VSCode
+.vs/
+.vscode/
+*.user
+*.userosscache
+*.suo
+*.cache
+*.log
+*.sln.docstates
 
-# Linker output
-*.ilk
-*.map
-*.exp
+# Temp files
+*.tmp
+*.temp
 
-# Precompiled Headers
-*.gch
-*.pch
+# Publish output
+publish/
+*.pubxml
+*.publishsettings
 
-# Libraries
-*.lib
-*.a
-*.la
-*.lo
+# Dotnet tools local state
+.tools/
 
-# Shared objects (inc. Windows DLLs)
-*.dll
-*.so
-*.so.*
-*.dylib
+# SQLite database
+*.db
+*.db-shm
+*.db-wal
 
-# Executables
-*.exe
-*.out
-*.app
-*.i*86
-*.x86_64
-*.hex
+# Only ignore if accidental:
+*.sqlite-journal
 
-# Debug files
-*.dSYM/
-*.su
-*.idb
-*.pdb
+# Angular
+# Node modules
+ClientApp/node_modules/
 
-# Kernel Module Compile Results
-*.mod*
-*.cmd
-.tmp_versions/
-modules.order
-Module.symvers
-Mkfile.old
-dkms.conf
+# Compiled app
+ClientApp/dist/
+ClientApp/build/
 
-# debug information files
-*.dwo
+# Angular cache
+ClientApp/.angular/
+ClientApp/.browser/
+
+# NPM logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment files (DO NOT commit secrets)
+ClientApp/src/environments/*.local.ts
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+desktop.ini
+
+# Linux
+*~
+
+.devcontainer/
+.history/
