@@ -9,10 +9,10 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-builder.Services.AddScoped<ISourceBehaviourService, SourceBehaviourService>();
-
 // Singleton only creates one instance of cache for whole app
+builder.Services.AddSingleton<ISourceBehaviourService, SourceBehaviourService>();
 builder.Services.AddSingleton<ILastReadingService, LastReadingService>();
+builder.Services.AddHostedService<GeneratorService>();
 
 // Add services to the container.
 builder.Services.AddControllers();
@@ -20,6 +20,12 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
+
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    DbInitializer.Seed(db);
+}
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())

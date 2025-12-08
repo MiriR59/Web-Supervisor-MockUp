@@ -7,13 +7,22 @@ public class SourceBehaviourService : ISourceBehaviourService
 {
     // Single shared random for all readings
     private readonly Random _random = new();
+    private readonly ILastReadingService _lastReadingService;
+
+    public SourceBehaviourService(ILastReadingService lastReadingService)
+    {
+        _lastReadingService = lastReadingService;
+    }
 
     public SourceReading GenerateReading(Source source, DateTime now)
     {
         var t = (now - DateTime.UnixEpoch).TotalSeconds;
+        var previous = _lastReadingService.GetOne(source.Id);
 
         if (source.IsEnabled == false)
-            return GenerateStoppedReading(source, now);
+        {
+            return GenerateStoppedReading(source, now, previous);
+        }
 
         return source.BehaviourProfile switch
         {
@@ -26,18 +35,23 @@ public class SourceBehaviourService : ISourceBehaviourService
     }
 
     // Behaviour functions called above
-    private SourceReading GenerateStoppedReading(Source source, DateTime now)
+    private SourceReading GenerateStoppedReading(Source source, DateTime now, SourceReading? previous)
     {
-        
+        int lastRPM = previous?.RPM ?? 0;
+        int newRPM = Math.Max(0, lastRPM - 300);
+
+        double lastTemp = previous?.Temperature ?? 20.0;
+        double newTemp = Math.Max(20.0, lastTemp - 5.0);
+
         return new SourceReading
         {
             SourceId = source.Id,
             Timestamp = now,
             Status = "Stopped",
-            RPM = 0,
+            RPM = newRPM,
             Power = 0,
-            Temperature
-        }
+            Temperature = newTemp,
+        };
     }
     private SourceReading GenerateStableReading(Source source, DateTime now)
     {
