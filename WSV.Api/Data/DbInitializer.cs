@@ -24,7 +24,7 @@ public static class DbInitializer
                 Name = "Machine Beta",
                 Description = "Wave",
                 IsEnabled = true,
-                BehaviourProfile = "Stable"
+                BehaviourProfile = "Wave"
             },
 
             new Source
@@ -32,7 +32,7 @@ public static class DbInitializer
                 Name = "Machine Gamma",
                 Description = "Spiky",
                 IsEnabled = true,
-                BehaviourProfile = "Stable"
+                BehaviourProfile = "Spiky"
             }
         };
 

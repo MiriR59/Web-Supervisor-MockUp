@@ -77,13 +77,47 @@ public class SourceBehaviourService : ISourceBehaviourService
 
     private SourceReading GenerateWaveReading(Source source, DateTime now, double t)
     {
-        // Add sine wave source with small noise levels
-        throw new NotImplementedException();
+        int baseRpm = 1500;
+        int basePower = 60;
+        double baseTemp = 85;
+        double period = 120;
+        double omega = 2 * Math.PI / period;
+        double x = omega * t;
+        double sine = Math.Sin(x);
+
+        int rpm = baseRpm + (int)(200 * sine);
+        int power = basePower + (int)(10 * sine);
+        double temp = baseTemp + 5.0 * sine;
+
+        return new SourceReading
+        {
+            SourceId = source.Id,
+            Timestamp = now,
+            Status = "Running",
+            RPM = rpm,
+            Power = power,
+            Temperature = temp,
+        };
     }
 
     private SourceReading GenerateSpikyReading(Source source, DateTime now)
     {
-        // Add linear behaviour with random spikes
-        throw new NotImplementedException();
+        int baseRpm = 1500;
+        int basePower = 60;
+        double baseTemp = 85;
+
+        int rpm = baseRpm + _random.Next(-500, 501);
+        int power = basePower +_random.Next(-30, 31);
+        double temp = baseTemp + (_random.NextDouble() * 40 - 20);
+
+        return new SourceReading
+        {
+            SourceId = source.Id,
+            Timestamp = now,
+            Status = "Running",
+            RPM = rpm,
+            Power = power,
+            Temperature = temp,
+        };
     }
 }
