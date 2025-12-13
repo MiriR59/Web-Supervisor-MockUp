@@ -1,0 +1,27 @@
+<div class="source-readings">
+
+    <button (click)="setWindow('5m')" [class.active]="currentWindow === '5m'">5 mins</button>
+    <button (click)="setWindow('15m')" [class.active]="currentWindow === '15m'">15 mins</button>
+    <button (click)="setWindow('all')" [class.active]="currentWindow === 'all'">All</button>
+
+    <div *ngIf="readings$ | async as readings; else loading">
+        
+        <div *ngIf="readings.length === 0">
+            No readings yet.
+        </div>
+
+        <ul *ngIf="readings.length > 0">
+            <li *ngFor="let r of readings">
+                {{ r.timestamp }}
+                RPM: {{ r.rpm }}
+                Power: {{ r.power }}
+                Temperature: {{ r.temperature }}
+            </li>
+        </ul>
+
+    </div>
+
+    <ng-template #loading>
+        Loading readings...
+    </ng-template>
+</div>

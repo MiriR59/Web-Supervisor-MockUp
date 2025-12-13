@@ -43,13 +43,6 @@ public class ReadingsController : ControllerBase
     [HttpGet("source/{sourceId}/latest")]
     public async Task<IActionResult> GetLatestOne(int sourceId)
     {
-        var source = await _context.Sources
-            .FirstOrDefaultAsync(s => s.Id == sourceId);
-        if(source == null)
-        {
-            return NotFound($"Source with ID {sourceId} wasnt found.");
-        }
-
         var last = _lastReadingService.GetOne(sourceId);
         if(last == null)
         {
@@ -59,7 +52,6 @@ public class ReadingsController : ControllerBase
         var latestOne = new ReadingDTO
         {
             SourceId = sourceId,
-            SourceName = source.Name,
 
             Timestamp = last.Timestamp,
             Status = last.Status,
@@ -73,22 +65,17 @@ public class ReadingsController : ControllerBase
 
     //GET history of single source from Time to Time /api/readings/source/{SourceId}?...
     //From and To will be added as query information
-    //Pure DB query, DATALIKE like
+    //Pure DB query, DATA-LAKE like
     [HttpGet("source/{sourceId}")]
     public async Task <IActionResult> GetHistoryOne(
         int sourceId,
         [FromQuery] DateTime? from,
-        [FromQuery] DateTime? to
+        [FromQuery] DateTime? to,
+        [FromQuery] int? limit
         )
     {
-        var source = await _context.Sources
-            .FirstOrDefaultAsync(s => s.Id == sourceId);
-        if(source is null)
-        {
-            return NotFound($"Source with ID {sourceId} wasnt found.");
-        }
-
         var query = _context.SourceReadings
+            .AsNoTracking()
             .Where(t => t.SourceId == sourceId);
 
         if(from.HasValue)
@@ -100,18 +87,22 @@ public class ReadingsController : ControllerBase
         {
             query = query.Where(v => v.Timestamp < to.Value);
         }
-            
+
+        // Hard cap of 5000 readings to prevent accidental overloading
+        // Basic soft cap stays at 1000
+        var take = Math.Clamp(limit ?? 1000, 1, 5000);
+        
         var readings = await query 
-            .OrderBy(w => w.Timestamp)
+            .OrderByDescending(r => r.Timestamp)  
+            .Take(take)
+            .OrderBy(r => r.Timestamp)   
             // This is where whole query is executed using ToListAsync, FirstAsync etc.
-            // Everthing up to this points is just preparation for actual SDF exectuion here.        
+            // Everthing up to this points is just preparation for actual SDF exectuion here.   
             .ToListAsync();
         
-        var historyOne = readings.Select(x => new ReadingDTO
+        var dto = readings.Select(x => new ReadingDTO
         {
-            SourceId = sourceId,
-            SourceName = source.Name,
-
+            SourceId = x.SourceId,
             Timestamp = x.Timestamp,
             Status = x.Status,
             RPM = x.RPM,
@@ -119,7 +110,7 @@ public class ReadingsController : ControllerBase
             Temperature = x.Temperature
         }).ToList();
 
-        return Ok(historyOne);
+        return Ok(dto);
     }
 
     //GET all readings endpoint /api/readings
