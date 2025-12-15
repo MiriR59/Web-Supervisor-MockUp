@@ -26,6 +26,7 @@ using (var scope = app.Services.CreateScope())
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
     await db.SourceReadings.ExecuteDeleteAsync();
+    await db.Sources.ExecuteDeleteAsync();
 
     DbInitializer.Seed(db);
 }

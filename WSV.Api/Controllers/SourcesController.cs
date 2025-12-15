@@ -22,7 +22,7 @@ public class SourcesController : ControllerBase
             .OrderBy(s => s.Id)
             .ToListAsync();
 
-        var dtoSources = sources.Select(s => new SourceDTO
+        var dtoSources = sources.Select(s => new SourceDto
         {
             Id = s.Id,
             Name = s.Name,
@@ -32,5 +32,19 @@ public class SourcesController : ControllerBase
         }).ToList();
 
         return Ok(dtoSources);
+    }
+
+    [HttpPatch("{sourceId}/enabled")]
+    public async Task<IActionResult> SetEnabled(int sourceId, [FromBody] SetEnabledDto dto)
+    {
+        var source = await _context.Sources.FindAsync(sourceId);
+
+        if (source == null)
+            return NotFound();
+
+        source.IsEnabled = dto.IsEnabled;
+        await _context.SaveChangesAsync();
+
+        return Ok(source.IsEnabled);
     }
 }

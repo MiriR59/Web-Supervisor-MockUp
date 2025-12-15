@@ -10,7 +10,6 @@ public class AppDbContext : DbContext
     {
     }
 
-    // Gotta add DbSet Machine and MachineReading later
     public DbSet<Source> Sources { get; set; }
     public DbSet<SourceReading> SourceReadings { get; set; }
 }

@@ -1,6 +1,8 @@
 <h1>WEB SUPERVISOR MOCKUP</h1>
 
-<div *ngIf="errorMessage as err" >{{ err }}</div>
+<div *ngIf="errorMessage" class="error">
+    {{ errorMessage}}
+</div>
 
 <div *ngIf="!errorMessage">
     <div *ngIf="sources$ | async as sources; else loading">
@@ -9,7 +11,7 @@
         </div>
 
         <div class="sources-grid" *ngIf="sources.length > 0">
-            <div *ngFor="let source of sources" class="sources-chart">
+            <div *ngFor="let source of sources; trackBy: trackBySourceId" class="sources-chart">
                 <h2>#{{ source.id }} - {{ source.name }}</h2>
                 <p>
                     Profile: {{ source.behaviourProfile }} |

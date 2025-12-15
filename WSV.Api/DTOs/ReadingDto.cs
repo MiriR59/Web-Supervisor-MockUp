@@ -1,4 +1,4 @@
-public class ReadingDTO
+public class ReadingDto
 {
     public int SourceId { get; set; }
 

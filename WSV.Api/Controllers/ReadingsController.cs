@@ -26,7 +26,7 @@ public class ReadingsController : ControllerBase
     {
        var latest = _lastReadingService.GetAll();
 
-       var dtoList = latest.Select(r => new ReadingDTO
+       var dtoList = latest.Select(r => new ReadingDto
        {
             SourceId = r.SourceId,
             Timestamp = r.Timestamp,
@@ -37,30 +37,6 @@ public class ReadingsController : ControllerBase
        }).ToList();
 
        return Ok(dtoList);
-    }
-
-    //GET only the latest reading for one particular source /api/readings/source/{SourceId}/latest
-    [HttpGet("source/{sourceId}/latest")]
-    public async Task<IActionResult> GetLatestOne(int sourceId)
-    {
-        var last = _lastReadingService.GetOne(sourceId);
-        if(last == null)
-        {
-            return NotFound($"There are no readings yet for the source {sourceId}.");
-        }
-
-        var latestOne = new ReadingDTO
-        {
-            SourceId = sourceId,
-
-            Timestamp = last.Timestamp,
-            Status = last.Status,
-            RPM = last.RPM,
-            Power = last.Power,
-            Temperature = last.Temperature
-        };
-
-        return Ok(latestOne);
     }
 
     //GET history of single source from Time to Time /api/readings/source/{SourceId}?...
@@ -95,12 +71,11 @@ public class ReadingsController : ControllerBase
         var readings = await query 
             .OrderByDescending(r => r.Timestamp)  
             .Take(take)
-            .OrderBy(r => r.Timestamp)   
             // This is where whole query is executed using ToListAsync, FirstAsync etc.
             // Everthing up to this points is just preparation for actual SDF exectuion here.   
             .ToListAsync();
         
-        var dto = readings.Select(x => new ReadingDTO
+        var dto = readings.Select(x => new ReadingDto
         {
             SourceId = x.SourceId,
             Timestamp = x.Timestamp,

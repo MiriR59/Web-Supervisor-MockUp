@@ -12,4 +12,14 @@ export class SourcesService {
   getAll(): Observable<SourceDto[]> {
   return this.http.get<SourceDto[]>('/api/sources');
   }
+
+  setEnabled(
+    sourceId: number,
+    isEnabled: boolean
+  ): Observable<boolean> {
+    return this.http.patch<boolean>(
+      `/api/sources/${sourceId}/enabled`,
+      { isEnabled }
+    );
+  }
 }
