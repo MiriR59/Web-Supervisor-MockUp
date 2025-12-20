@@ -18,7 +18,7 @@
     </span>
 
     <div *ngIf="readings$ | async as readings; else loading" class="content-grid">
-        <div class="panel">
+        <div class="panel panel-table">
             <div class="panel-title">Readings</div>
 
             <div *ngIf="readings.length === 0">No readings yet.</div>
@@ -46,10 +46,25 @@
             </div>
         </div>
         
-        <div class="panel">
-            <div class="panel-title">Chart</div>
+        <div class="panel panel-chart">
+            <div class="panel-title">RPM</div>
+            <div class="chart-placeholder"
+                echarts
+                [options]="rpmOptions$ | async">
+            </div>
+        </div>
+
+        <div class="panel panel-chart">
+            <div class="panel-title">Power</div>
             <div class="chart-placeholder">
                 Chart placeholder
+            </div>
+        </div>
+
+        <div class="panel panel-chart">
+            <div class="panel-title">Temperature</div>
+            <div class="chart-placeholder">
+                Chaart placeholder
             </div>
         </div>
     </div>

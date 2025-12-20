@@ -6,25 +6,31 @@
 
 .content-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(2, minmax(320px, 1fr));
+  grid-auto-rows: 480px;
   gap: 12px;
-  align-items: start;
+  max-width: 1500px;
+  margin-top: 12px;
 }
 
 .panel {
   border: 1px solid #333;
-  border-radius: 8px;
+  border-radius: 12px;
   padding: 12px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .panel-title {
   font-weight: 600;
+  text-align: center;
   margin-bottom: 8px;
 }
 
 /* Scroll container */
 .table-scroll {
-  max-height: 280px;
+  max-height: 440px;
   overflow: auto;
   border: 1px solid #444;
   border-radius: 6px;
@@ -74,9 +80,11 @@ button:disabled {
 }
 
 .chart-placeholder {
-  height: 280px;
-  display: grid;
-  place-items: center;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   border: 1px dashed #555;
   border-radius: 6px;
 }
