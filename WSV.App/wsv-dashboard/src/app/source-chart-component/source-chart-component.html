@@ -48,24 +48,35 @@
         
         <div class="panel panel-chart">
             <div class="panel-title">RPM</div>
-            <div class="chart-placeholder"
-                echarts
-                [options]="rpmOptions$ | async">
-            </div>
+
+            @if (rpmOptions$ | async; as opt) {
+                <div class="chart-slot" echarts [options]="opt"></div>
+            }
+            @else {
+                <div class="chart-placeholder">Loading chart...</div>
+            }
         </div>
 
         <div class="panel panel-chart">
             <div class="panel-title">Power</div>
-            <div class="chart-placeholder">
-                Chart placeholder
-            </div>
+
+            @if (powerOptions$ | async; as opt) {
+                <div class="chart-slot" echarts [options]="opt"></div>
+            }
+            @else {
+                <div class="chart-placeholder">Loading chart...</div>
+            }
         </div>
 
         <div class="panel panel-chart">
             <div class="panel-title">Temperature</div>
-            <div class="chart-placeholder">
-                Chaart placeholder
-            </div>
+
+            @if (tempOptions$ | async; as opt) {
+                <div class="chart-slot" echarts [options]="opt"></div>
+            }
+            @else {
+                <div class="chart-placeholder">Loading chart...</div>
+            }
         </div>
     </div>
 

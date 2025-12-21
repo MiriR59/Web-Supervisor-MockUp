@@ -1,19 +1,23 @@
 import { Component, Input, signal } from '@angular/core';
 import { NgIf, NgFor, AsyncPipe, DatePipe, DecimalPipe } from '@angular/common';
-import { BehaviorSubject, Observable, of, combineLatest, Subject, share } from 'rxjs';
+import { BehaviorSubject, Observable, of, combineLatest, Subject } from 'rxjs';
 import { catchError, shareReplay, switchMap, exhaustMap, take, skip, startWith, tap, map } from 'rxjs';
 import { NgxEchartsDirective } from 'ngx-echarts';
-import type { EChartsOption } from 'echarts';
 
 import { SourceDto } from '../models/source-dto'; 
 import { ReadingDto } from '../models/reading-dto';
 import { ReadingsService } from '../services/readings-service';
 import { RefreshService } from '../services/refresh-service';
 import { SourcesService } from '../services/sources-service';
-import { ECBasicOption } from 'echarts/types/dist/shared';
 
 type TimeWindow = '5m' | '15m' | 'all';
 type XY = [number, number];
+type Points = {
+  rpm: XY[];
+  power: XY[];
+  temp: XY[];
+};
+import type { EChartsOption } from 'echarts';
 
 @Component({
   selector: 'app-source-chart-component',
@@ -36,7 +40,9 @@ export class SourceChartComponent {
   isApplying = signal(false);
 
   points$!: Observable<Points>;
-  rpmOptions$!: Observable<ECBasicOption>;
+  rpmOptions$!: Observable<EChartsOption>;
+  powerOptions$!: Observable<EChartsOption>;
+  tempOptions$!: Observable<EChartsOption>;
 
   constructor(
     private readingService: ReadingsService,
@@ -65,14 +71,14 @@ export class SourceChartComponent {
 
         return this.readingService.getHistoryForSource(this.source.id, from, to);
       }),
-      shareReplay(1),
+      shareReplay({ bufferSize: 1, refCount: true}),
       catchError((err) => {
         console.error('Failed to load readings', err);
         return of([]);
         })
     );
 
-    // Setup points for plotting
+    //Setup points for plotting
     this.points$ = this.readings$.pipe(
       map(readings => [...readings].sort(
         (a,b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
@@ -86,16 +92,15 @@ export class SourceChartComponent {
     );
 
     this.rpmOptions$ = this.points$.pipe(
-      map( p => ({
-        tooltip: { trigger: 'axis' },
-        grid: { left: 45, right: 15, top: 20, bottom: 35 },
-        xAxis: { type: 'time' },
-        yAxis: { type: 'value', scale: true },
-        series: [{
-          type: 'line',
-          showSymbol: false,
-          data: p.rpm }],
-      }))
+      map(p => this.buildOptions('RPM', p.rpm, 'rpm'))
+    );
+
+    this.powerOptions$ = this.points$.pipe(
+      map(p => this.buildOptions('Power', p.power, 'kW'))
+    );
+
+    this.tempOptions$ = this.points$.pipe(
+      map(p => this.buildOptions('Temperature', p.temp, '°C'))
     );
     
     this.enabled$ = this.setEnabled$.pipe(
@@ -117,7 +122,7 @@ export class SourceChartComponent {
         )
       ),
       startWith(this.source.isEnabled),
-      shareReplay(1)
+      shareReplay({ bufferSize: 1, refCount: true})
     );
   }
 
@@ -128,5 +133,29 @@ export class SourceChartComponent {
 
   toggleEnabled(current: boolean) {
     this.setEnabled$.next(!current);
+  }
+
+  private buildOptions(title: string, data: XY[], unit?: string): EChartsOption {
+    return {
+      tooltip: { trigger: 'axis' },
+      grid: { left: 45, right: 15, top: 35, bottom: 35 },
+      xAxis: {
+        type: 'time',
+        name: 'Time',
+        nameLocation: 'middle',
+        nameGap: 30,
+      },
+      yAxis: {
+        type: 'value',
+        scale: true,
+        name: unit ? `${title} [${unit}]` : title,
+        nameLocation: 'end',
+      },
+      series: [{
+        type: 'line',
+        showSymbol: false,
+        data,
+      }],
+    };
   }
 }
