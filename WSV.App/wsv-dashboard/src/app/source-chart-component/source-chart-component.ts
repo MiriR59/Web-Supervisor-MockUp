@@ -144,6 +144,14 @@ export class SourceChartComponent {
         name: 'Time',
         nameLocation: 'middle',
         nameGap: 30,
+        axisLabel: {
+          formatter: (value: number) => {
+            const d = new Date(value);
+            return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit'});
+          },
+
+          hideOverlap: true,
+        }
       },
       yAxis: {
         type: 'value',

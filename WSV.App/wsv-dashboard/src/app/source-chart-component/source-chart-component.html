@@ -3,7 +3,6 @@
     <button (click)="setWindow('5m')" [class.active]="currentWindow() === '5m'">5 mins</button>
     <button (click)="setWindow('15m')" [class.active]="currentWindow() === '15m'">15 mins</button>
     <button (click)="setWindow('all')" [class.active]="currentWindow() === 'all'">All</button>
-
         @let enabled = (enabled$ | async);
         <button
             (click)="toggleEnabled(enabled ?? false)"

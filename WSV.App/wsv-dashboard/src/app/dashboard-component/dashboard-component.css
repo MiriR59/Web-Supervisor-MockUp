@@ -1,0 +1,29 @@
+.sources-grid {
+    display: grid;
+    gap: 16px;
+
+    grid-template-columns: repeat(auto-fit, minmax(850px, 1fr));
+
+    max-width: 16000px;
+    margin: 12px auto;
+    padding: 0 12px;
+}
+
+.source-card {
+    border: 3px solid #333;
+    border-radius: 12px;
+    padding: 12px;
+
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.source-header h2 {
+    margin: 0;
+}
+
+.source-header p {
+    margin: 0;
+    opacity: 0.85;
+}

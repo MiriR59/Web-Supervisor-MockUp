@@ -11,12 +11,15 @@
         </div>
 
         <div class="sources-grid" *ngIf="sources.length > 0">
-            <div *ngFor="let source of sources; trackBy: trackBySourceId" class="sources-chart">
-                <h2>#{{ source.id }} - {{ source.name }}</h2>
-                <p>
-                    Profile: {{ source.behaviourProfile }} |
-                    Enabled: {{ source.isEnabled ? 'YES' : 'NO' }}
-                </p>
+            <div *ngFor="let source of sources; trackBy: trackBySourceId" class="source-card">
+                <div class="source-header">
+                    <h2>#{{ source.id }} - {{ source.name }}</h2>
+                    <p>
+                        Profile: {{ source.behaviourProfile }} |
+                        Enabled: {{ source.isEnabled ? 'YES' : 'NO' }}
+                    </p>
+                </div>
+                
 
                 <app-source-chart-component [source]="source"></app-source-chart-component>
             </div>
