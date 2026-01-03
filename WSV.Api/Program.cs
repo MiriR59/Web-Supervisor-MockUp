@@ -13,6 +13,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.AddSingleton<ISourceBehaviourService, SourceBehaviourService>();
 builder.Services.AddSingleton<ILastReadingService, LastReadingService>();
 builder.Services.AddHostedService<GeneratorService>();
+builder.Services.AddScoped<IPasswordService, PasswordService>();
 
 // Add services to the container.
 builder.Services.AddControllers();
@@ -23,7 +24,13 @@ var app = builder.Build();
 
 using (var scope = app.Services.CreateScope())
 {
+    var services = scope.ServiceProvider;
+
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    var passwordService = services.GetRequiredService<IPasswordService>();
+    var config = services.GetRequiredService<IConfiguration>();
+    
+    await UserSeeder.SeedAdminAsync(db, passwordService, config);
 
     await db.SourceReadings.ExecuteDeleteAsync();
     await db.Sources.ExecuteDeleteAsync();

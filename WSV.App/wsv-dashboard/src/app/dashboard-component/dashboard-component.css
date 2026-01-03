@@ -2,7 +2,7 @@
     display: grid;
     gap: 16px;
 
-    grid-template-columns: repeat(auto-fit, minmax(850px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(700px, 1fr));
 
     max-width: 16000px;
     margin: 12px auto;
@@ -10,7 +10,7 @@
 }
 
 .source-card {
-    border: 3px solid #333;
+    border: 5px solid #333;
     border-radius: 12px;
     padding: 12px;
 

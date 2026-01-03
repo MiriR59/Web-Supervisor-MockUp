@@ -12,4 +12,15 @@ public class AppDbContext : DbContext
 
     public DbSet<Source> Sources { get; set; }
     public DbSet<SourceReading> SourceReadings { get; set; }
+    public DbSet<AppUser> AppUsers { get; set; }
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        base.OnModelCreating(modelBuilder);
+
+        modelBuilder.Entity<AppUser>()
+        .HasIndex(u => u.UserName)
+        .IsUnique();
+    }
 }
+
