@@ -1,6 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using WSV.Api.Data;
 using WSV.Api.Services;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -12,6 +15,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 // Singleton only creates one instance of cache for whole app
 builder.Services.AddSingleton<ISourceBehaviourService, SourceBehaviourService>();
 builder.Services.AddSingleton<ILastReadingService, LastReadingService>();
+
 builder.Services.AddHostedService<GeneratorService>();
 builder.Services.AddScoped<IPasswordService, PasswordService>();
 
@@ -20,13 +24,51 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+// Services necessary for token auth
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(options =>
+{
+    var jwtSection = builder.Configuration.GetSection("Jwt");
+    var key = jwtSection["Key"];
+    var issuer = jwtSection["Issuer"];
+    var audience = jwtSection["Audience"];
+
+    if (string.IsNullOrWhiteSpace(key))
+        throw new InvalidOperationException("Jwt:Key is missing");
+    if (string.IsNullOrWhiteSpace(issuer))
+        throw new InvalidOperationException("Jwt:Issuer is missing");
+    if (string.IsNullOrWhiteSpace(audience))
+        throw new InvalidOperationException("Jwt:Audience is missing");
+
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuerSigningKey = true,
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key)),
+
+        ValidateIssuer = true,
+        ValidIssuer = issuer,
+
+        ValidateAudience = true,
+        ValidAudience = audience,
+
+        ValidateLifetime = true,
+        ClockSkew = TimeSpan.FromSeconds(30) // small tolerance for clock drift
+    };
+});
+
+builder.Services.AddAuthorization();
+
 var app = builder.Build();
 
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
 
-    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    var db = services.GetRequiredService<AppDbContext>();
     var passwordService = services.GetRequiredService<IPasswordService>();
     var config = services.GetRequiredService<IConfiguration>();
     
@@ -46,6 +88,9 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+app.UseAuthentication();
+app.UseAuthorization();
 
 app.MapControllers();
 
