@@ -22,4 +22,9 @@ export class SourcesService {
       { isEnabled }
     );
   }
+
+  getPublic(): Observable<SourceDto[]> {
+    return this.http.get<SourceDto[]>('/api/sources/public');
+  }
+  
 }

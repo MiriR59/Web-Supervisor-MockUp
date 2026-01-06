@@ -24,4 +24,18 @@ export class ReadingsService {
     );
   }
   
+  getHistoryForPublicSource(
+    sourceId: number,
+    from?: string,
+    to?: string
+  ): Observable<ReadingDto[]> {
+    let params = new HttpParams();
+    if (from) params = params.set('from', from);
+    if (to) params = params.set('to', to);
+
+    return this.http.get<ReadingDto[]>(
+      `/api/readings/public/source/${sourceId}`,
+      { params }
+    );
+  }
 }
