@@ -18,6 +18,7 @@ builder.Services.AddSingleton<ILastReadingService, LastReadingService>();
 
 builder.Services.AddHostedService<GeneratorService>();
 builder.Services.AddScoped<IPasswordService, PasswordService>();
+builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
 
 // Add services to the container.
 builder.Services.AddControllers();

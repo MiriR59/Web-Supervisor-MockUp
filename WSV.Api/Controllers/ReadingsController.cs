@@ -2,11 +2,13 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using WSV.Api.Data;
 using WSV.Api.Services;
+using Microsoft.AspNetCore.Authorization;
 
 namespace WSV.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize]
 public class ReadingsController : ControllerBase
 {
     private readonly AppDbContext _context;

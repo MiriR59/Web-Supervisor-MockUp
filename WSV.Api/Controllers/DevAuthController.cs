@@ -4,6 +4,7 @@ using WSV.Api.Services;
 
 namespace WSV.Api.Controllers;
 
+// Tests whether hashing works as intended
 [ApiController]
 [Route("api/[controller]")]
 public class DevAuthController : ControllerBase
@@ -17,7 +18,7 @@ public class DevAuthController : ControllerBase
         _env = env;
     }
 
-    [HttpGet("hash")]
+    [HttpGet("hashtest")]
     public IActionResult CheckHash()
     {
         if (!_env.IsDevelopment())

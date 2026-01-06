@@ -14,6 +14,7 @@ public class AppDbContext : DbContext
     public DbSet<SourceReading> SourceReadings { get; set; }
     public DbSet<AppUser> AppUsers { get; set; }
 
+    // Safety check, no duplicate usernames
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
