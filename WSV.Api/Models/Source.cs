@@ -11,6 +11,8 @@ public class Source
     public string? Description { get; set; }
     public Boolean IsEnabled { get; set; }
     
+    public Boolean IsPublic { get; set; } = false;
+
     public string BehaviourProfile { get; set; } = string.Empty;
 
     public List<SourceReading> Readings { get; set; } = new();

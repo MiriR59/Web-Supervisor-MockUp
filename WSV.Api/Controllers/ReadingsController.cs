@@ -3,6 +3,8 @@ using Microsoft.EntityFrameworkCore;
 using WSV.Api.Data;
 using WSV.Api.Services;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc.ActionConstraints;
+using Microsoft.IdentityModel.Tokens;
 
 namespace WSV.Api.Controllers;
 
@@ -101,5 +103,58 @@ public class ReadingsController : ControllerBase
         .ToListAsync();
 
         return Ok(readings);
+    }
+
+    [HttpGet("public/source/{sourceId}")]
+    [AllowAnonymous]
+    public async Task<IActionResult> GetPublicOne(
+        int sourceId,
+        [FromQuery] DateTime? from,
+        [FromQuery] DateTime? to,
+        [FromQuery] int? limit
+        )
+    {
+        var sourceCheck = await _context.Sources
+            .AsNoTracking()
+            .SingleOrDefaultAsync(p => p.Id == sourceId && p.IsPublic);
+        if(sourceCheck is null)
+            return NotFound();
+
+        var query = _context.SourceReadings
+            .AsNoTracking()
+            .Where(t => t.SourceId == sourceId);
+
+        if(from.HasValue)
+        {
+            query = query.Where(u => u.Timestamp >= from.Value);    
+        }
+
+        if(to.HasValue)
+        {
+            query = query.Where(v => v.Timestamp < to.Value);
+        }
+
+        // Hard cap of 5000 readings to prevent accidental overloading
+        // Basic soft cap stays at 1000
+        var take = Math.Clamp(limit ?? 1000, 1, 5000);
+        
+        var readings = await query 
+            .OrderByDescending(r => r.Timestamp)  
+            .Take(take)
+            // This is where whole query is executed using ToListAsync, FirstAsync etc.
+            // Everthing up to this points is just preparation for actual SDF exectuion here.   
+            .ToListAsync();
+        
+        var dto = readings.Select(x => new ReadingDto
+        {
+            SourceId = x.SourceId,
+            Timestamp = x.Timestamp,
+            Status = x.Status,
+            RPM = x.RPM,
+            Power = x.Power,
+            Temperature = x.Temperature
+        }).ToList();
+
+        return Ok(dto);
     }
 }

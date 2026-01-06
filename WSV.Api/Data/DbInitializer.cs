@@ -16,6 +16,7 @@ public static class DbInitializer
                 Name = "Machine Alpha",
                 Description = "Stable",
                 IsEnabled = true,
+                IsPublic = true,
                 BehaviourProfile = "Stable"
             },
 
