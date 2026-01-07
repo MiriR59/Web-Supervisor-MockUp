@@ -7,11 +7,13 @@ import { SourcesService } from '../services/sources-service';
 import { SourceDto } from '../models/source-dto';
 import { SourceChartComponent } from '../source-chart-component/source-chart-component';
 import { RefreshService } from '../services/refresh-service';
+import { AuthService } from '../services/auth-service';
+import { LoginComponent } from "../login-component/login-component";
 
 @Component({
   selector: 'app-dashboard-component',
   standalone: true,
-  imports: [NgIf, NgFor, AsyncPipe, SourceChartComponent],
+  imports: [NgIf, NgFor, AsyncPipe, SourceChartComponent, LoginComponent],
   templateUrl: './dashboard-component.html',
   styleUrl: './dashboard-component.css',
 })
@@ -23,17 +25,24 @@ export class DashboardComponent {
   constructor(
     private sourcesService: SourcesService,
     private refreshService: RefreshService,
+    private authService: AuthService
   ) {
     this.sources$ = merge(
       of(void 0),
       this.refreshService.refreshRequest$).pipe(
-        exhaustMap(() => this.sourcesService.getAll().pipe(
-          catchError(() => {
-            console.error('Failed to load sources');
-            this.errorMessage = 'Failed to load sources.';
-            return of ([] as SourceDto[]);
-          })
-        )),
+        exhaustMap(() => {
+          const sources$ = this.authService.isLoggedIn()
+            ? this.sourcesService.getAll()
+            : this.sourcesService.getPublicAll();
+
+          return sources$.pipe(
+            catchError((err) => {
+              console.error('Failed to load sources', err);
+              this.errorMessage = 'Failed to load sources';
+              return of([] as SourceDto[]);
+            })
+          )
+        }),
         shareReplay({ bufferSize: 1, refCount: true })
       );
   }
@@ -41,5 +50,4 @@ export class DashboardComponent {
   trackBySourceId(index: number, source: SourceDto) {
     return source.id;
   }
-
 }

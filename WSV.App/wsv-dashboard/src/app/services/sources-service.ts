@@ -23,7 +23,7 @@ export class SourcesService {
     );
   }
 
-  getPublic(): Observable<SourceDto[]> {
+  getPublicAll(): Observable<SourceDto[]> {
     return this.http.get<SourceDto[]>('/api/sources/public');
   }
   

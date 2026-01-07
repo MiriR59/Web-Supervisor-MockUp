@@ -1,0 +1,15 @@
+<form #f="ngForm" (ngSubmit)="submit()" novalidate>
+    <label>Username</label>
+    <input name="userName" [(ngModel)]="login.userName" required>
+
+    <label>Password</label>
+    <input type="password" name="password" [(ngModel)]="login.password" required>
+
+    <button class="bth" type="submit" [disabled]="f.invalid || loading">
+        {{ loading ? 'Loging in' : 'Log in' }}
+    </button>
+
+    <p *ngIf="submitted">
+        You have been logged in!
+    </p>
+</form>

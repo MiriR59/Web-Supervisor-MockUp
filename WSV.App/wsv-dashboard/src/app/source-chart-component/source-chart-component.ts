@@ -9,6 +9,7 @@ import { ReadingDto } from '../models/reading-dto';
 import { ReadingsService } from '../services/readings-service';
 import { RefreshService } from '../services/refresh-service';
 import { SourcesService } from '../services/sources-service';
+import { AuthService } from '../services/auth-service';
 
 type TimeWindow = '5m' | '15m' | 'all';
 type XY = [number, number];
@@ -47,7 +48,8 @@ export class SourceChartComponent {
   constructor(
     private readingService: ReadingsService,
     private refreshService: RefreshService,
-    private sourcesService: SourcesService
+    private sourcesService: SourcesService,
+    private authService: AuthService
   ) {}
 
   //Do I need to always refetch while tick or click happens and w emits? Cant I just compare something like _DbContext?
@@ -69,13 +71,18 @@ export class SourceChartComponent {
           to = now.toISOString();
         }
 
-        return this.readingService.getHistoryForSource(this.source.id, from, to);
+        const request$ = this.authService.isLoggedIn()
+            ? this.readingService.getHistoryForSource(this.source.id, from, to)
+            : this.readingService.getHistoryForPublicSource(this.source.id, from, to);
+
+        return request$.pipe(
+          catchError((err) => {
+            console.error('Failed to load readings', err);
+            return of([] as ReadingDto[]);
+          })
+        )       
       }),
       shareReplay({ bufferSize: 1, refCount: true}),
-      catchError((err) => {
-        console.error('Failed to load readings', err);
-        return of([]);
-        })
     );
 
     //Setup points for plotting
