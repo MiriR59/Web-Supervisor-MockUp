@@ -1,8 +1,10 @@
 import { Component, Input, signal } from '@angular/core';
 import { NgIf, NgFor, AsyncPipe, DatePipe, DecimalPipe } from '@angular/common';
 import { BehaviorSubject, Observable, of, combineLatest, Subject } from 'rxjs';
-import { catchError, shareReplay, switchMap, exhaustMap, take, skip, startWith, tap, map } from 'rxjs';
+import { catchError, shareReplay, switchMap, exhaustMap, startWith, tap, map, finalize, merge } from 'rxjs';
 import { NgxEchartsDirective } from 'ngx-echarts';
+import { toObservable } from '@angular/core/rxjs-interop';
+import { distinctUntilChanged, mapTo } from 'rxjs';
 
 import { SourceDto } from '../models/source-dto'; 
 import { ReadingDto } from '../models/reading-dto';
@@ -50,14 +52,16 @@ export class SourceChartComponent {
     private refreshService: RefreshService,
     private sourcesService: SourcesService,
     private authService: AuthService
-  ) {}
-
-  //Do I need to always refetch while tick or click happens and w emits? Cant I just compare something like _DbContext?
+  ) {  }
 
   ngOnInit(): void {
-    // Fetch readings from BE
-    this.readings$ = combineLatest([this.window$, this.refreshService.tick$]).pipe(
-      switchMap(([w, _tick]) => {
+    const reload$ = merge(
+      of(void 0),
+      this.refreshService.chartRefresh$,
+    );
+    
+    this.readings$ = combineLatest([this.window$, reload$]).pipe(
+      switchMap(([w, _]) => {
         const now = new Date();
         let from: string | undefined;
         let to: string | undefined;
@@ -121,13 +125,13 @@ export class SourceChartComponent {
           }),
 
           tap(() => {
-            this.refreshService.markDirty(),
-            this.refreshService.tick$.pipe(skip(1), take(1)).subscribe(() => {
-              this.isApplying.set(false);
-            });
-          })
+            this.refreshService.requestDashboardRefreshNow();
+          }),
+
+          finalize(() => this.isApplying.set(false))
         )
       ),
+
       startWith(this.source.isEnabled),
       shareReplay({ bufferSize: 1, refCount: true})
     );

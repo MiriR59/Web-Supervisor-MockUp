@@ -5,11 +5,11 @@
     <label>Password</label>
     <input type="password" name="password" [(ngModel)]="login.password" required>
 
-    <button class="bth" type="submit" [disabled]="f.invalid || loading">
-        {{ loading ? 'Loging in' : 'Log in' }}
+    <button class="bth" type="submit" [disabled]="f.invalid || loading()">
+        {{ loading() ? 'Logging in' : 'Log in' }}
     </button>
 
-    <p *ngIf="submitted">
-        You have been logged in!
+    <p *ngIf="authService.isLoggedIn()">
+        You are logged in as: <strong>{{login.userName}}</strong>
     </p>
 </form>

@@ -1,33 +1,36 @@
-import { Injectable, signal } from '@angular/core';
+import { Injectable, effect } from '@angular/core';
 import { Observable, Subject, timer, withLatestFrom, startWith, scan } from 'rxjs';
-import { shareReplay } from 'rxjs';
+
+import { AuthService } from './auth-service';
 
 @Injectable({
   providedIn: 'root',
 })
 
 export class RefreshService {  
-  // Emit immediately (0) and then every 10 secs
-  // shareReplay makes this stream shared across all subs
-  readonly tick$: Observable<number> = timer(0, 10_000).pipe(
-    shareReplay({ bufferSize: 1, refCount: true})
-  );
+  private readonly chartTick = timer(0, 10_000);
 
-  private isDirty = false;
-  private readonly refresh = new Subject<void>();
-  // Separates internal refresh and Observable, so nothing but this service can emit
-  readonly refreshRequest$ = this.refresh.asObservable();
+  private readonly chartRefresh = new Subject<void>();
+  readonly chartRefresh$ = this.chartRefresh.asObservable();
 
-  markDirty() {
-    this.isDirty = true;
+  private readonly authRefresh = new Subject<void>();
+  readonly authRefresh$ = this.authRefresh.asObservable();
+
+  constructor(private authService: AuthService) {
+    this.chartTick.subscribe(() => {
+      this.chartRefresh.next();
+    })
+
+    effect(() => {
+      this.authService.isLoggedIn();
+      this.authRefresh.next();
+      this.chartRefresh.next();
+    })
   }
 
-  constructor() {
-    this.tick$.subscribe(() => {
-      if (this.isDirty == true) {
-        this.isDirty = false;
-        this.refresh.next();
-      }
-    });
+  requestDashboardRefreshNow() {
+    this.authRefresh.next();
   }
+  
+  
 }

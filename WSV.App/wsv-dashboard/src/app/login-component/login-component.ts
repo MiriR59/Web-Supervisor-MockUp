@@ -1,9 +1,10 @@
-import { Component } from '@angular/core';
+import { Component, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
 import { LoginService } from '../services/login-service';
 import { AuthService } from '../services/auth-service';
+import { RefreshService } from '../services/refresh-service';
 
 @Component({
   selector: 'app-login-component',
@@ -13,8 +14,7 @@ import { AuthService } from '../services/auth-service';
   styleUrl: './login-component.css',
 })
 export class LoginComponent {
-  loading = false;
-  submitted = false;
+  loading = signal(false);
 
   login = {
     userName: '',
@@ -23,22 +23,24 @@ export class LoginComponent {
 
   constructor(
     private loginService: LoginService,
-    private authService: AuthService
+    public authService: AuthService,
+    private refreshService: RefreshService,
   ) {}
 
   submit() {
-    if(this.loading)
+    if(this.loading())
       return;
 
-    this.loading = true;
+    this.loading.set(true);
+
     this.loginService.login(this.login).subscribe({
       next: (token: string) => {
         this.authService.setToken(token);
-        this.submitted = true;
-        this.loading = false;
+        this.loading.set(false);
       },
-      error: () => {
-        this.loading = false;
+
+      error: (err) => {
+        this.loading.set(false);
       }
 
     })

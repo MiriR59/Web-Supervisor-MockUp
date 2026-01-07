@@ -1,26 +1,22 @@
-import { Injectable } from '@angular/core';
+import { Injectable, signal, computed } from '@angular/core';
 
 @Injectable({
   providedIn: 'root',
 })
 export class AuthService {
   private readonly tokenKey = 'wsv_token'
-
-  getToken(): string | null {
-    return localStorage.getItem(this.tokenKey);
-  }
+  private readonly _token = signal<string | null>(localStorage.getItem(this.tokenKey))
+  // computed creates reactive signal from given expression
+  readonly token = computed(() => this._token())
+  readonly isLoggedIn = computed(() => !!this._token())
 
   setToken(token: string): void {
     localStorage.setItem(this.tokenKey, token);
+    this._token.set(token);
   }
 
   clearToken(): void {
     localStorage.removeItem(this.tokenKey);
-  }
-
-  isLoggedIn(): boolean {
-    // Minimal rule now, later ADD CHECK FOR EXPIRATION
-    const token = this.getToken();
-    return !!token;
+    this._token.set(null);
   }
 }

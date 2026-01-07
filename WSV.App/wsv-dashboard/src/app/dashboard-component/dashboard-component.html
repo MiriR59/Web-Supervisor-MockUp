@@ -1,11 +1,11 @@
 <h1>WEB SUPERVISOR MOCKUP</h1>
 <app-login-component></app-login-component>
 
-<div *ngIf="errorMessage" class="error">
-    {{ errorMessage}}
+<div *ngIf="errorMessage() as msg" class="error">
+    {{ msg }}
 </div>
 
-<div *ngIf="!errorMessage">
+<div *ngIf="errorMessage() === null">
     <div *ngIf="sources$ | async as sources; else loading">
         <div *ngIf="sources.length == 0">
             No sources returned.
