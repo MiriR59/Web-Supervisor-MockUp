@@ -1,15 +1,24 @@
-<form #f="ngForm" (ngSubmit)="submit()" novalidate>
-    <label>Username</label>
-    <input name="userName" [(ngModel)]="login.userName" required>
+<div *ngIf="!authService.isLoggedIn(); else loggedInBlock">
+    <form #f="ngForm" (ngSubmit)="submit()" novalidate>
+        <label>Username</label>
+        <input name="userName" [(ngModel)]="login.userName" required>
 
-    <label>Password</label>
-    <input type="password" name="password" [(ngModel)]="login.password" required>
+        <label>Password</label>
+        <input type="password" name="password" [(ngModel)]="login.password" required>
 
-    <button class="bth" type="submit" [disabled]="f.invalid || loading()">
+        <button class="bth" type="submit" [disabled]="f.invalid || loading()">
         {{ loading() ? 'Logging in' : 'Log in' }}
-    </button>
+        </button>
+    </form>
+</div>
 
-    <p *ngIf="authService.isLoggedIn()">
-        You are logged in as: <strong>{{login.userName}}</strong>
+<p *ngIf="!loading() && errorMessage() as msg" class="error">
+  {{ msg }}
+</p>
+
+<ng-template #loggedInBlock>
+    <p>
+        You are logged in as: <strong>{{ authService.username() }}</strong> <br>
+        <button type="button" (click)="logout()">Log out</button>
     </p>
-</form>
+</ng-template>

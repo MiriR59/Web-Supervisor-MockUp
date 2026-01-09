@@ -17,7 +17,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
     return next(requestToSend).pipe(
         catchError((err: unknown) => {
             if (err instanceof HttpErrorResponse && err.status === 401) {
-                auth.clearToken();
+                auth.clearAuth();
             }
             return throwError(() => err);
         })
