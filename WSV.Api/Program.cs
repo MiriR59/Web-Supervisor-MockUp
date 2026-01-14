@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using WSV.Api.Data;
 using WSV.Api.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 
