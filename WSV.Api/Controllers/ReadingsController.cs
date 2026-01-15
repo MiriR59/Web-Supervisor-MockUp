@@ -26,6 +26,7 @@ public class ReadingsController : ControllerBase
     //First attemp cycled in EF Core and JSON file. Use of DTO fixed it.
     //Pure cache service, no queries
     [HttpGet("latest")]
+    [Authorize(Policy = "CanViewAllSources")]
     public IActionResult GetLatestAll()
     {
        var latest = _lastReadingService.GetAll();
@@ -47,6 +48,7 @@ public class ReadingsController : ControllerBase
     //From and To will be added as query information
     //Pure DB query, DATA-LAKE like
     [HttpGet("source/{sourceId}")]
+    [Authorize(Policy = "CanViewAllSources")]
     public async Task <IActionResult> GetHistoryOne(
         int sourceId,
         [FromQuery] DateTime? from,
@@ -95,6 +97,7 @@ public class ReadingsController : ControllerBase
     //GET all readings endpoint /api/readings
     //Simulates access to the DL and provides whole history
     [HttpGet]
+    [Authorize(Policy = "CanViewAllSources")]
     public async Task<IActionResult> GetAll()
     {
         var readings = await _context.SourceReadings

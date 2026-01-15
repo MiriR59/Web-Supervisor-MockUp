@@ -12,6 +12,7 @@ public class AppUser
     [Required]
     public string PasswordHash { get; set; } = string.Empty;
 
+    [Required]
     public string Role { get; set; } = string.Empty;
     public Boolean IsActive { get; set; } = true;
 }

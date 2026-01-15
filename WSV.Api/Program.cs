@@ -58,11 +58,21 @@ builder.Services.AddAuthentication(options =>
         ValidAudience = audience,
 
         ValidateLifetime = true,
-        ClockSkew = TimeSpan.FromSeconds(30) // small tolerance for clock drift
+        ClockSkew = TimeSpan.FromSeconds(30), // small tolerance for clock drift
+
+        RoleClaimType = System.Security.Claims.ClaimTypes.Role,
+        NameClaimType = System.Security.Claims.ClaimTypes.Name
     };
 });
 
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("CanViewAllSources", p =>
+        p.RequireRole("Admin", "Operator", "Viewer"));
+    
+    options.AddPolicy("CanToggleSources", p =>
+        p.RequireRole("Admin", "Operator"));
+});
 
 var app = builder.Build();
 
@@ -73,8 +83,17 @@ using (var scope = app.Services.CreateScope())
     var db = services.GetRequiredService<AppDbContext>();
     var passwordService = services.GetRequiredService<IPasswordService>();
     var config = services.GetRequiredService<IConfiguration>();
-    
-    await UserSeeder.SeedAdminAsync(db, passwordService, config);
+
+    var userSeedSections = new[]
+    {
+        "AdminSeed",
+        "OperatorSeed",
+        "ViewerSeed"
+    };
+    foreach (var section in userSeedSections)
+    {
+        await UserSeeder.SeedUserAsync(db, passwordService, config, section);
+    }
 
     await db.SourceReadings.ExecuteDeleteAsync();
     await db.Sources.ExecuteDeleteAsync();

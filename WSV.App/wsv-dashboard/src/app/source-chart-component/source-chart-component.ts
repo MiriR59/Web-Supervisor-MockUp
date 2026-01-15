@@ -51,8 +51,8 @@ export class SourceChartComponent {
     private readingService: ReadingsService,
     private refreshService: RefreshService,
     private sourcesService: SourcesService,
-    private authService: AuthService
-  ) {  }
+    public authService: AuthService
+  ) {}
 
   ngOnInit(): void {
     const reload$ = merge(

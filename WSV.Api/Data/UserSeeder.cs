@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using WSV.Api.Models;
 using WSV.Api.Services;
 
@@ -5,35 +6,36 @@ namespace WSV.Api.Data;
 
 public static class UserSeeder
 {
-    public static async Task SeedAdminAsync(
+    public static async Task SeedUserAsync(
         AppDbContext db,
         IPasswordService passwordService,
-        IConfiguration config)
+        IConfiguration config,
+        string sectionName)
     {
-        if (db.AppUsers.Any())
-            return;
-
-        // Access appsettings.dev.json for AdminSeed details
-        var section = config.GetSection("AdminSeed");
+        var section = config.GetSection(sectionName);
 
         var userName = section["UserName"];
         var password = section["Password"];
-        var role = section["Role"] ?? "Admin";
+        // Default role set as a Viewer, such to be safe
+        var role = section["Role"];
 
-        // Check if config settings exists
-        if (string.IsNullOrWhiteSpace(userName) || string.IsNullOrWhiteSpace(password))
-            throw new InvalidOperationException("AdminSeed configuration missing");
+        if (string.IsNullOrWhiteSpace(userName) || string.IsNullOrWhiteSpace(password) || string.IsNullOrWhiteSpace(role))
+            throw new InvalidOperationException($"{sectionName} configuration missing");
 
-        var admin = new AppUser
+        var exists = await db.AppUsers.AnyAsync(u => u.UserName == userName);
+        if (exists)
+            return;
+        
+        var user = new AppUser
         {
             UserName = userName,
             Role = role,
             IsActive = true
         };
 
-        admin.PasswordHash = passwordService.Hash(admin, password);
+        user.PasswordHash = passwordService.Hash(user, password);
 
-        db.AppUsers.Add(admin);
+        db.AppUsers.Add(user);
         await db.SaveChangesAsync();
     }
 }

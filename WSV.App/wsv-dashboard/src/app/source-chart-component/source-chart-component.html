@@ -5,6 +5,7 @@
     <button (click)="setWindow('all')" [class.active]="currentWindow() === 'all'">All</button>
         @let enabled = (enabled$ | async);
         <button
+            *ngIf="authService.canToggleSources()"
             (click)="toggleEnabled(enabled ?? false)"
             [disabled]="isApplying()"
             [class.enable]="!enabled"

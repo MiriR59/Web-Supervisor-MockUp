@@ -19,6 +19,7 @@ public class SourcesController : ControllerBase
     }
 
     [HttpGet]
+    [Authorize(Policy = "CanViewAllSources")]
     public async Task<IActionResult> GetAll()
     {
         var sources = await _context.Sources
@@ -38,6 +39,7 @@ public class SourcesController : ControllerBase
     }
 
     [HttpPatch("{sourceId}/enabled")]
+    [Authorize(Policy = "CanToggleSources")]
     public async Task<IActionResult> SetEnabled(int sourceId, [FromBody] SetEnabledDto dto)
     {
         var source = await _context.Sources.FindAsync(sourceId);

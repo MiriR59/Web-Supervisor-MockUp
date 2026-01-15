@@ -26,7 +26,6 @@ export class LoginComponent {
   constructor(
     private loginService: LoginService,
     public authService: AuthService,
-    private refreshService: RefreshService,
   ) {}
 
   submit() {
@@ -37,8 +36,9 @@ export class LoginComponent {
 
     this.loginService.login(this.login).subscribe({
       next: (token: string) => {
-        this.authService.setAuth(token, this.login.userName);
+        this.authService.setAuth(token);
         this.login = { userName: '', password: '' };
+        this.errorMessage.set(null);
         this.loading.set(false);
       },
 
