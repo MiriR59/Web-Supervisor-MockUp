@@ -15,9 +15,11 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 
 // Singleton only creates one instance of cache for whole app
 builder.Services.AddSingleton<ISourceBehaviourService, SourceBehaviourService>();
-builder.Services.AddSingleton<ILastReadingService, LastReadingService>();
+builder.Services.AddSingleton<IReadingCacheService, ReadingCacheService>();
+builder.Services.AddSingleton<IReadingBufferService, ReadingBufferService>();
 
 builder.Services.AddHostedService<GeneratorService>();
+builder.Services.AddHostedService<DbWriterService>();
 builder.Services.AddScoped<IPasswordService, PasswordService>();
 builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
 

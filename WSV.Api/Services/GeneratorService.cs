@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using SQLitePCL;
 using WSV.Api.Data;
+using WSV.Api.Models;
 
 namespace WSV.Api.Services;
 
@@ -11,16 +12,21 @@ public class GeneratorService : BackgroundService
 {
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ISourceBehaviourService _behaviourService;
-    private readonly ILastReadingService _lastReadingService;
+    private readonly IReadingCacheService _readingCacheService;
+    private readonly IReadingBufferService _readingBufferService;
+
+    private const double EmitProbab = 0.10;
 
     public GeneratorService(
         IServiceScopeFactory scopeFactory,
         ISourceBehaviourService behaviourService,
-        ILastReadingService lastReadingService)
+        IReadingCacheService readingCacheService,
+        IReadingBufferService readingBufferService)
     {
         _scopeFactory = scopeFactory;
         _behaviourService = behaviourService;
-        _lastReadingService = lastReadingService;
+        _readingCacheService = readingCacheService;
+        _readingBufferService = readingBufferService;
     }
 
     // Following method is called on the start and runs until shutdown
@@ -29,31 +35,32 @@ public class GeneratorService : BackgroundService
         // Loops until stopped by cancellation
         while (!stoppingToken.IsCancellationRequested)
         {
+            // Unnecessary to load sources again and again, add reactivity to Enable/disable
+            List<Source> sources;
             using(var scope = _scopeFactory.CreateScope())
             {
                 var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-                var now = DateTime.UtcNow;
-
-                // Load all sources from DB
-                var sources = await db.Sources.ToListAsync(stoppingToken);
-
-                // Generate reading for each source
-                foreach(var source in sources)
-                {
-                    var reading = _behaviourService.GenerateReading(source, now);
-
-                    // Add to DbContext
-                    db.SourceReadings.Add(reading);
-
-                    // Update cache
-                    _lastReadingService.SetLastReading(reading);
-                }
-
-                // Save everything at once
-                await db.SaveChangesAsync(stoppingToken);
+                sources = await db.Sources.AsNoTracking().ToListAsync(stoppingToken);
             }
 
-            await Task.Delay(TimeSpan.FromSeconds(10), stoppingToken);
+            // Generate reading for each source and enqueue it
+            foreach(var source in sources)
+            {
+
+                if (Random.Shared.NextDouble() >= EmitProbab)
+                    continue;
+                    
+                var now = DateTime.UtcNow;
+                var reading = _behaviourService.GenerateReading(source, now);
+
+                // Update cache
+                _readingCacheService.SetRecentReading(reading);
+
+                // Queue reading in the channel
+                await _readingBufferService.EnqueueAsync(reading, stoppingToken);
+            }
+
+            await Task.Delay(TimeSpan.FromSeconds(1), stoppingToken);
         }
     }
 }

@@ -14,12 +14,12 @@ namespace WSV.Api.Controllers;
 public class ReadingsController : ControllerBase
 {
     private readonly AppDbContext _context;
-    private readonly ILastReadingService _lastReadingService;
+    private readonly IReadingCacheService _readingCacheService;
 
-    public ReadingsController(AppDbContext context, ILastReadingService lastReadingService)
+    public ReadingsController(AppDbContext context, IReadingCacheService readingCacheService)
     {
         _context = context;
-        _lastReadingService = lastReadingService;
+        _readingCacheService = readingCacheService;
     }   
 
     //GET only the latest reading for all the sources /api/readings/latest

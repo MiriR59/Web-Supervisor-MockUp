@@ -7,17 +7,17 @@ public class SourceBehaviourService : ISourceBehaviourService
 {
     // Single shared random for all readings
     private readonly Random _random = new();
-    private readonly ILastReadingService _lastReadingService;
+    private readonly IReadingCacheService _readingCacheService;
 
-    public SourceBehaviourService(ILastReadingService lastReadingService)
+    public SourceBehaviourService(IReadingCacheService readingCacheService)
     {
-        _lastReadingService = lastReadingService;
+        _readingCacheService =  readingCacheService;
     }
 
     public SourceReading GenerateReading(Source source, DateTime now)
     {
         var t = (now - DateTime.UnixEpoch).TotalSeconds;
-        var previous = _lastReadingService.GetOne(source.Id);
+        var previous =  _readingCacheService.GetLatestOne(source.Id);
 
         if (source.IsEnabled == false)
         {
