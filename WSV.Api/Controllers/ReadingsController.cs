@@ -22,28 +22,6 @@ public class ReadingsController : ControllerBase
         _readingCacheService = readingCacheService;
     }   
 
-    //GET only the latest reading for all the sources /api/readings/latest
-    //First attemp cycled in EF Core and JSON file. Use of DTO fixed it.
-    //Pure cache service, no queries
-    [HttpGet("latest")]
-    [Authorize(Policy = "CanViewAllSources")]
-    public IActionResult GetLatestAll()
-    {
-       var latest = _lastReadingService.GetAll();
-
-       var dtoList = latest.Select(r => new ReadingDto
-       {
-            SourceId = r.SourceId,
-            Timestamp = r.Timestamp,
-            Status = r.Status,
-            RPM = r.RPM,
-            Power = r.Power,
-            Temperature = r.Temperature
-       }).ToList();
-
-       return Ok(dtoList);
-    }
-
     //GET history of single source from Time to Time /api/readings/source/{SourceId}?...
     //From and To will be added as query information
     //Pure DB query, DATA-LAKE like
