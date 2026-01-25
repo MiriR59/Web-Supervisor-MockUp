@@ -9,7 +9,9 @@ public class SourceReading
     public int SourceId { get; set; }
     public Source Source { get; set; } = null!;
 
-    public DateTime Timestamp { get; set;}
+    public DateTimeOffset Timestamp { get; set;}
+
+    public long TimestampUnixMs { get; set; }
 
     public string Status { get; set; } = string.Empty;
 

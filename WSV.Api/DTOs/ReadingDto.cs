@@ -2,7 +2,7 @@ public class ReadingDto
 {
     public int SourceId { get; set; }
 
-    public DateTime Timestamp { get; set; }
+    public DateTimeOffset Timestamp { get; set; }
     public string Status { get; set ;} = string.Empty;
 
     public int RPM { get; set; }

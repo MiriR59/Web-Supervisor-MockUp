@@ -14,7 +14,7 @@ public class SourceBehaviourService : ISourceBehaviourService
         _readingCacheService =  readingCacheService;
     }
 
-    public SourceReading GenerateReading(Source source, DateTime now)
+    public SourceReading GenerateReading(Source source, DateTimeOffset now)
     {
         var t = (now - DateTime.UnixEpoch).TotalSeconds;
         var previous =  _readingCacheService.GetLatestOne(source.Id);
@@ -35,7 +35,7 @@ public class SourceBehaviourService : ISourceBehaviourService
     }
 
     // Behaviour functions called above
-    private SourceReading GenerateStoppedReading(Source source, DateTime now, SourceReading? previous)
+    private SourceReading GenerateStoppedReading(Source source, DateTimeOffset now, SourceReading? previous)
     {
         int lastRPM = previous?.RPM ?? 0;
         int newRPM = Math.Max(0, lastRPM - 300);
@@ -47,13 +47,14 @@ public class SourceBehaviourService : ISourceBehaviourService
         {
             SourceId = source.Id,
             Timestamp = now,
+            TimestampUnixMs = now.ToUnixTimeMilliseconds(),
             Status = "Stopped",
             RPM = newRPM,
             Power = 0,
             Temperature = newTemp,
         };
     }
-    private SourceReading GenerateStableReading(Source source, DateTime now)
+    private SourceReading GenerateStableReading(Source source, DateTimeOffset now)
     {
         // Stable source with small noise levels
         int baseRpm = 1500;
@@ -68,6 +69,7 @@ public class SourceBehaviourService : ISourceBehaviourService
         {
             SourceId = source.Id,
             Timestamp = now,
+            TimestampUnixMs = now.ToUnixTimeMilliseconds(),
             Status = "Running",
             RPM = rpm,
             Power = power,
@@ -75,7 +77,7 @@ public class SourceBehaviourService : ISourceBehaviourService
         };
     }
 
-    private SourceReading GenerateWaveReading(Source source, DateTime now, double t)
+    private SourceReading GenerateWaveReading(Source source, DateTimeOffset now, double t)
     {
         int baseRpm = 1500;
         int basePower = 60;
@@ -93,6 +95,7 @@ public class SourceBehaviourService : ISourceBehaviourService
         {
             SourceId = source.Id,
             Timestamp = now,
+            TimestampUnixMs = now.ToUnixTimeMilliseconds(),
             Status = "Running",
             RPM = rpm,
             Power = power,
@@ -100,7 +103,7 @@ public class SourceBehaviourService : ISourceBehaviourService
         };
     }
 
-    private SourceReading GenerateSpikyReading(Source source, DateTime now)
+    private SourceReading GenerateSpikyReading(Source source, DateTimeOffset now)
     {
         int baseRpm = 1500;
         int basePower = 60;
@@ -114,6 +117,7 @@ public class SourceBehaviourService : ISourceBehaviourService
         {
             SourceId = source.Id,
             Timestamp = now,
+            TimestampUnixMs = now.ToUnixTimeMilliseconds(),
             Status = "Running",
             RPM = rpm,
             Power = power,

@@ -5,6 +5,7 @@ using WSV.Api.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc.ActionConstraints;
 using Microsoft.IdentityModel.Tokens;
+using WSV.Api.Models;
 
 namespace WSV.Api.Controllers;
 
@@ -16,10 +17,13 @@ public class ReadingsController : ControllerBase
     private readonly AppDbContext _context;
     private readonly IReadingCacheService _readingCacheService;
 
-    public ReadingsController(AppDbContext context, IReadingCacheService readingCacheService)
+    private readonly ILogger<ReadingsController> _logger;
+
+    public ReadingsController(AppDbContext context, IReadingCacheService readingCacheService, ILogger<ReadingsController> logger)
     {
         _context = context;
         _readingCacheService = readingCacheService;
+        _logger = logger;
     }   
 
     //GET history of single source from Time to Time /api/readings/source/{SourceId}?...
@@ -135,6 +139,95 @@ public class ReadingsController : ControllerBase
             Power = x.Power,
             Temperature = x.Temperature
         }).ToList();
+
+        return Ok(dto);
+    }
+
+    [HttpGet("public/source/{sourceId}/test")]
+    [AllowAnonymous]
+    public async Task<IActionResult> GetPublicOneTest(
+        int sourceId,
+        [FromQuery] DateTimeOffset? from,
+        [FromQuery] DateTimeOffset? to,
+        [FromQuery] int? limit
+        )
+    {
+        var sourceCheck = await _context.Sources
+            .AsNoTracking()
+            .SingleOrDefaultAsync(p => p.Id == sourceId && p.IsPublic);
+        if(sourceCheck is null)
+            return NotFound();
+
+        var query = _context.SourceReadings
+            .AsNoTracking()
+            .Where(t => t.SourceId == sourceId);
+
+        var cacheReadings = _readingCacheService.GetRecentOne(sourceId);
+        IEnumerable<SourceReading> cacheFiltered = cacheReadings;
+
+        if(from.HasValue)
+        {
+            var fromMs = from.Value.ToUnixTimeMilliseconds();
+            query = query.Where(u => u.TimestampUnixMs >= fromMs);    
+            cacheFiltered = cacheFiltered.Where(r => r.Timestamp >= from.Value);
+        }
+
+        if(to.HasValue)
+        {
+            var toMs = to.Value.ToUnixTimeMilliseconds();
+            query = query.Where(v => v.TimestampUnixMs < toMs);
+            cacheFiltered = cacheFiltered.Where(r => r.Timestamp < to.Value);
+        }
+
+        // Hard cap of 5000 readings to prevent accidental overloading
+        // Basic soft cap stays at 1000
+        var take = Math.Clamp(limit ?? 1000, 1, 5000);
+        
+        var readings = await query 
+            .OrderByDescending(r => r.TimestampUnixMs)  
+            .Take(take)
+            // This is where whole query is executed using ToListAsync, FirstAsync etc.
+            // Everthing up to this points is just preparation for actual SDF exectuion here.   
+            .ToListAsync();
+
+        var firstDb = readings.FirstOrDefault();
+        if (firstDb != null)
+        {
+            _logger.LogInformation("READDB ts={ts} offset={offset} unixMs={ms}",
+            firstDb.Timestamp.ToString("O"),
+            firstDb.Timestamp.Offset,
+            firstDb.TimestampUnixMs);
+        }
+
+        var dbDto = readings.Select(x => new ReadingDto
+        {
+            SourceId = x.SourceId,
+            Timestamp = x.Timestamp,
+            Status = x.Status,
+            RPM = x.RPM,
+            Power = x.Power,
+            Temperature = x.Temperature
+        });
+        var cacheDto = cacheFiltered.Select(x => new ReadingDto
+        {
+            SourceId = x.SourceId,
+            Timestamp = x.Timestamp,
+            Status = x.Status,
+            RPM = x.RPM,
+            Power = x.Power,
+            Temperature = x.Temperature
+        });
+
+        var merged = new Dictionary<DateTimeOffset, ReadingDto>();
+        foreach (var d in cacheDto)
+            merged[d.Timestamp] = d;
+        foreach (var d in dbDto)
+            merged[d.Timestamp] = d;
+
+        var dto = merged.Values
+            .OrderByDescending(r => r.Timestamp)
+            .Take(take)
+            .ToList();
 
         return Ok(dto);
     }

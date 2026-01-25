@@ -4,5 +4,5 @@ namespace WSV.Api.Services;
 
 public interface ISourceBehaviourService
 {
-    SourceReading GenerateReading(Source source, DateTime now);
+    SourceReading GenerateReading(Source source, DateTimeOffset now);
 }

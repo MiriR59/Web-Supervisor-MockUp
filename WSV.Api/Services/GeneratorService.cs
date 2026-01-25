@@ -21,7 +21,8 @@ public class GeneratorService : BackgroundService
         IServiceScopeFactory scopeFactory,
         ISourceBehaviourService behaviourService,
         IReadingCacheService readingCacheService,
-        IReadingBufferService readingBufferService)
+        IReadingBufferService readingBufferService,
+        ILogger<GeneratorService> logger)
     {
         _scopeFactory = scopeFactory;
         _behaviourService = behaviourService;
@@ -50,7 +51,7 @@ public class GeneratorService : BackgroundService
                 if (Random.Shared.NextDouble() >= EmitProbab)
                     continue;
                     
-                var now = DateTime.UtcNow;
+                var now = DateTimeOffset.UtcNow;
                 var reading = _behaviourService.GenerateReading(source, now);
 
                 // Update cache

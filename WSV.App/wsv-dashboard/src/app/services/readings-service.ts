@@ -34,7 +34,7 @@ export class ReadingsService {
     if (to) params = params.set('to', to);
 
     return this.http.get<ReadingDto[]>(
-      `/api/readings/public/source/${sourceId}`,
+      `/api/readings/public/source/${sourceId}/test`,
       { params }
     );
   }

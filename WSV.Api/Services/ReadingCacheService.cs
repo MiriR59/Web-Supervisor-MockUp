@@ -33,7 +33,7 @@ public class ReadingCacheService : IReadingCacheService
     {
         lock (_lock)
         {
-            var now = DateTime.UtcNow;
+            var now = DateTimeOffset.UtcNow;
 
             _latest[reading.SourceId] = reading;
 
@@ -49,7 +49,7 @@ public class ReadingCacheService : IReadingCacheService
         }
     }
 
-    private void ExpireOldReadingsLock(int sourceId, DateTime now)
+    private void ExpireOldReadingsLock(int sourceId, DateTimeOffset now)
     {
         if (!_buffers.TryGetValue(sourceId, out var q))
             return;
@@ -60,14 +60,14 @@ public class ReadingCacheService : IReadingCacheService
             _buffers.Remove(sourceId);
     }
 
-    private static void ExpireQueueLock(Queue<SourceReading> q, DateTime now)
+    private static void ExpireQueueLock(Queue<SourceReading> q, DateTimeOffset now)
     {
         var cutoff = now - Retention;
 
         while (q.Count > 0)
         {
             var oldest = q.Peek();
-            if (oldest.Timestamp >= cutoff)
+            if (oldest.Timestamp < cutoff)
                 break;
 
             q.Dequeue();
