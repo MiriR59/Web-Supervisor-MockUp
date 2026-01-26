@@ -14,18 +14,18 @@ public static class DbInitializer
             new Source
             {
                 Name = "Machine Alpha",
-                Description = "Stable",
+                Description = "Wave",
                 IsEnabled = true,
                 IsPublic = true,
-                BehaviourProfile = "Stable"
+                BehaviourProfile = "Wave"
             },
 
             new Source
             {
                 Name = "Machine Beta",
-                Description = "Wave",
+                Description = "Stable",
                 IsEnabled = true,
-                BehaviourProfile = "Wave"
+                BehaviourProfile = "Stable"
             },
 
             new Source

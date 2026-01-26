@@ -33,8 +33,8 @@ public class ReadingsController : ControllerBase
     [Authorize(Policy = "CanViewAllSources")]
     public async Task <IActionResult> GetHistoryOne(
         int sourceId,
-        [FromQuery] DateTime? from,
-        [FromQuery] DateTime? to,
+        [FromQuery] DateTimeOffset? from,
+        [FromQuery] DateTimeOffset? to,
         [FromQuery] int? limit
         )
     {
@@ -42,14 +42,20 @@ public class ReadingsController : ControllerBase
             .AsNoTracking()
             .Where(t => t.SourceId == sourceId);
 
+        var cacheReadings = _readingCacheService.GetRecentOne(sourceId);
+        IEnumerable<SourceReading> cacheFiltered = cacheReadings;
+
         if(from.HasValue)
         {
-            query = query.Where(u => u.Timestamp >= from.Value);    
+            var fromMs = from.Value.ToUnixTimeMilliseconds();
+            query = query.Where(u => u.TimestampUnixMs >= fromMs);    
         }
 
         if(to.HasValue)
         {
-            query = query.Where(v => v.Timestamp < to.Value);
+            var toMs = to.Value.ToUnixTimeMilliseconds();
+            query = query.Where(v => v.TimestampUnixMs < toMs);
+            cacheFiltered = cacheFiltered.Where(r => r.Timestamp < to.Value);
         }
 
         // Hard cap of 5000 readings to prevent accidental overloading
@@ -57,13 +63,13 @@ public class ReadingsController : ControllerBase
         var take = Math.Clamp(limit ?? 1000, 1, 5000);
         
         var readings = await query 
-            .OrderByDescending(r => r.Timestamp)  
+            .OrderByDescending(r => r.TimestampUnixMs)  
             .Take(take)
             // This is where whole query is executed using ToListAsync, FirstAsync etc.
             // Everthing up to this points is just preparation for actual SDF exectuion here.   
             .ToListAsync();
-        
-        var dto = readings.Select(x => new ReadingDto
+
+        var dbDto = readings.Select(x => new ReadingDto
         {
             SourceId = x.SourceId,
             Timestamp = x.Timestamp,
@@ -71,81 +77,34 @@ public class ReadingsController : ControllerBase
             RPM = x.RPM,
             Power = x.Power,
             Temperature = x.Temperature
-        }).ToList();
+        });
+        var cacheDto = cacheFiltered.Select(x => new ReadingDto
+        {
+            SourceId = x.SourceId,
+            Timestamp = x.Timestamp,
+            Status = x.Status,
+            RPM = x.RPM,
+            Power = x.Power,
+            Temperature = x.Temperature
+        });
+
+        var merged = new Dictionary<DateTimeOffset, ReadingDto>();
+        foreach (var d in cacheDto)
+            merged[d.Timestamp] = d;
+        foreach (var d in dbDto)
+            merged[d.Timestamp] = d;
+
+        var dto = merged.Values
+            .OrderByDescending(r => r.Timestamp)
+            .Take(take)
+            .ToList();
 
         return Ok(dto);
-    }
-
-    //GET all readings endpoint /api/readings
-    //Simulates access to the DL and provides whole history
-    [HttpGet]
-    [Authorize(Policy = "CanViewAllSources")]
-    public async Task<IActionResult> GetAll()
-    {
-        var readings = await _context.SourceReadings
-        .OrderBy(r => r.SourceId)
-        .ThenByDescending(r => r.Timestamp)
-        .ToListAsync();
-
-        return Ok(readings);
     }
 
     [HttpGet("public/source/{sourceId}")]
     [AllowAnonymous]
     public async Task<IActionResult> GetPublicOne(
-        int sourceId,
-        [FromQuery] DateTime? from,
-        [FromQuery] DateTime? to,
-        [FromQuery] int? limit
-        )
-    {
-        var sourceCheck = await _context.Sources
-            .AsNoTracking()
-            .SingleOrDefaultAsync(p => p.Id == sourceId && p.IsPublic);
-        if(sourceCheck is null)
-            return NotFound();
-
-        var query = _context.SourceReadings
-            .AsNoTracking()
-            .Where(t => t.SourceId == sourceId);
-
-        if(from.HasValue)
-        {
-            query = query.Where(u => u.Timestamp >= from.Value);    
-        }
-
-        if(to.HasValue)
-        {
-            query = query.Where(v => v.Timestamp < to.Value);
-        }
-
-        // Hard cap of 5000 readings to prevent accidental overloading
-        // Basic soft cap stays at 1000
-        var take = Math.Clamp(limit ?? 1000, 1, 5000);
-        
-        var readings = await query 
-            .OrderByDescending(r => r.Timestamp)  
-            .Take(take)
-            // This is where whole query is executed using ToListAsync, FirstAsync etc.
-            // Everthing up to this points is just preparation for actual SDF exectuion here.   
-            .ToListAsync();
-        
-        var dto = readings.Select(x => new ReadingDto
-        {
-            SourceId = x.SourceId,
-            Timestamp = x.Timestamp,
-            Status = x.Status,
-            RPM = x.RPM,
-            Power = x.Power,
-            Temperature = x.Temperature
-        }).ToList();
-
-        return Ok(dto);
-    }
-
-    [HttpGet("public/source/{sourceId}/test")]
-    [AllowAnonymous]
-    public async Task<IActionResult> GetPublicOneTest(
         int sourceId,
         [FromQuery] DateTimeOffset? from,
         [FromQuery] DateTimeOffset? to,
@@ -190,15 +149,6 @@ public class ReadingsController : ControllerBase
             // Everthing up to this points is just preparation for actual SDF exectuion here.   
             .ToListAsync();
 
-        var firstDb = readings.FirstOrDefault();
-        if (firstDb != null)
-        {
-            _logger.LogInformation("READDB ts={ts} offset={offset} unixMs={ms}",
-            firstDb.Timestamp.ToString("O"),
-            firstDb.Timestamp.Offset,
-            firstDb.TimestampUnixMs);
-        }
-
         var dbDto = readings.Select(x => new ReadingDto
         {
             SourceId = x.SourceId,
@@ -218,6 +168,22 @@ public class ReadingsController : ControllerBase
             Temperature = x.Temperature
         });
 
+        var cacheList = cacheFiltered.ToList();
+
+        if (cacheList.Count == 0)
+        {
+            _logger.LogInformation("CACHE empty");
+        }
+        else
+        {
+            _logger.LogInformation(
+            "CACHE count={count}, oldest={oldest}, newest={newest}",
+            cacheList.Count,
+            cacheList.Min(r => r.Timestamp).ToString("O"),
+            cacheList.Max(r => r.Timestamp).ToString("O")
+            );
+        }
+    
         var merged = new Dictionary<DateTimeOffset, ReadingDto>();
         foreach (var d in cacheDto)
             merged[d.Timestamp] = d;

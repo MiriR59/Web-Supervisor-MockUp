@@ -1,7 +1,4 @@
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using SQLitePCL;
 using WSV.Api.Data;
 using WSV.Api.Models;
 
@@ -15,14 +12,11 @@ public class GeneratorService : BackgroundService
     private readonly IReadingCacheService _readingCacheService;
     private readonly IReadingBufferService _readingBufferService;
 
-    private const double EmitProbab = 0.10;
-
     public GeneratorService(
         IServiceScopeFactory scopeFactory,
         ISourceBehaviourService behaviourService,
         IReadingCacheService readingCacheService,
-        IReadingBufferService readingBufferService,
-        ILogger<GeneratorService> logger)
+        IReadingBufferService readingBufferService)
     {
         _scopeFactory = scopeFactory;
         _behaviourService = behaviourService;
@@ -47,10 +41,6 @@ public class GeneratorService : BackgroundService
             // Generate reading for each source and enqueue it
             foreach(var source in sources)
             {
-
-                if (Random.Shared.NextDouble() >= EmitProbab)
-                    continue;
-                    
                 var now = DateTimeOffset.UtcNow;
                 var reading = _behaviourService.GenerateReading(source, now);
 
@@ -61,7 +51,7 @@ public class GeneratorService : BackgroundService
                 await _readingBufferService.EnqueueAsync(reading, stoppingToken);
             }
 
-            await Task.Delay(TimeSpan.FromSeconds(1), stoppingToken);
+            await Task.Delay(TimeSpan.FromSeconds(10), stoppingToken);
         }
     }
 }

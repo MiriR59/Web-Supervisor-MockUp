@@ -10,13 +10,13 @@ public class DbWriterService : BackgroundService
     private readonly IReadingBufferService _buffer;
     private readonly ILogger<DbWriterService> _logger;
 
-    private static readonly TimeSpan TickInterval = TimeSpan.FromSeconds(30);
+    private static readonly TimeSpan TickInterval = TimeSpan.FromSeconds(10);
 
-    private const int NormalBatch = 15;
-    private const int SlowBatch = 3;
+    private const int NormalBatch = 6;
+    private const int SlowBatch = 1;
 
     private static readonly TimeSpan CycleLength = TimeSpan.FromMinutes(5);
-    private static readonly TimeSpan SlowDuration = TimeSpan.FromMinutes(2);
+    private static readonly TimeSpan SlowDuration = TimeSpan.FromMinutes(3);
 
     private readonly DateTime _startUtc = DateTime.UtcNow;
 
