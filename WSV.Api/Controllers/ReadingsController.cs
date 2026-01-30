@@ -6,6 +6,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc.ActionConstraints;
 using Microsoft.IdentityModel.Tokens;
 using WSV.Api.Models;
+using System.Net;
+using SQLitePCL;
 
 namespace WSV.Api.Controllers;
 
@@ -16,13 +18,18 @@ public class ReadingsController : ControllerBase
 {
     private readonly AppDbContext _context;
     private readonly IReadingCacheService _readingCacheService;
-
+    private readonly IAuthorizationService _authorization;
     private readonly ILogger<ReadingsController> _logger;
 
-    public ReadingsController(AppDbContext context, IReadingCacheService readingCacheService, ILogger<ReadingsController> logger)
+    public ReadingsController(
+        AppDbContext context,
+        IReadingCacheService readingCacheService,
+        IAuthorizationService authorization,
+        ILogger<ReadingsController> logger)
     {
         _context = context;
         _readingCacheService = readingCacheService;
+        _authorization = authorization;
         _logger = logger;
     }   
 
@@ -168,22 +175,6 @@ public class ReadingsController : ControllerBase
             Temperature = x.Temperature
         });
 
-        var cacheList = cacheFiltered.ToList();
-
-        if (cacheList.Count == 0)
-        {
-            _logger.LogInformation("CACHE empty");
-        }
-        else
-        {
-            _logger.LogInformation(
-            "CACHE count={count}, oldest={oldest}, newest={newest}",
-            cacheList.Count,
-            cacheList.Min(r => r.Timestamp).ToString("O"),
-            cacheList.Max(r => r.Timestamp).ToString("O")
-            );
-        }
-    
         var merged = new Dictionary<DateTimeOffset, ReadingDto>();
         foreach (var d in cacheDto)
             merged[d.Timestamp] = d;
@@ -196,5 +187,59 @@ public class ReadingsController : ControllerBase
             .ToList();
 
         return Ok(dto);
+    }
+
+    [HttpGet("/source/{sourceId}/lag")]
+    [AllowAnonymous]
+    public async Task<IActionResult> GetLagOne(
+        int sourceId
+    )
+    {
+        var sourceCheck = await _context.Sources
+            .AsNoTracking()
+            .SingleOrDefaultAsync(p => p.Id == sourceId);
+
+        if(sourceCheck is null)
+            return NotFound();
+        
+        if(!sourceCheck.IsPublic)
+        {
+            var auth = await _authorization.AuthorizeAsync(User, "CanViewAllSources");
+            if(!auth.Succeeded)
+                return NotFound();
+        }
+
+        var latestGenerated = _readingCacheService.GetLatestOne(sourceId);
+        if(latestGenerated is null)
+            return Ok(new LagDto
+            {
+                SourceId = sourceId,
+                State = LagState.NoLiveData
+            });
+
+        var latestDb = await _context.SourceReadings
+            .AsNoTracking()
+            .Where(r => r.SourceId == sourceId)
+            .MaxAsync(r => (long?)r.TimestampUnixMs);
+
+        if(latestDb is null)
+            return Ok(new LagDto
+            {
+                SourceId = sourceId,
+                State = LagState.DbEmpty,
+                LatestGenerated = latestGenerated.Timestamp
+            });
+
+        var lag = latestGenerated.TimestampUnixMs - latestDb.Value;
+        var lagOut = Math.Max(0, lag / 1000.0);
+
+        return Ok (new LagDto
+        {
+            SourceId = sourceId,
+            State = LagState.Ok,
+            LatestGenerated = latestGenerated.Timestamp,
+            LatestDb = DateTimeOffset.FromUnixTimeMilliseconds(latestDb.Value),
+            DbLag = lagOut
+        });
     }
 }
