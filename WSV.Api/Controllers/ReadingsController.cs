@@ -189,7 +189,7 @@ public class ReadingsController : ControllerBase
         return Ok(dto);
     }
 
-    [HttpGet("/source/{sourceId}/lag")]
+    [HttpGet("source/{sourceId}/lag")]
     [AllowAnonymous]
     public async Task<IActionResult> GetLagOne(
         int sourceId

@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { ReadingDto } from '../models/reading-dto';
+import { LagDto } from '../models/lag-dto';
 
 @Injectable({
   providedIn: 'root',
@@ -36,6 +37,14 @@ export class ReadingsService {
     return this.http.get<ReadingDto[]>(
       `/api/readings/public/source/${sourceId}`,
       { params }
+    );
+  }
+
+  getLagForSource(
+    sourceId: number
+  ): Observable<LagDto> {
+    return this.http.get<LagDto>(
+      `/api/readings/source/${sourceId}/lag`
     );
   }
 }

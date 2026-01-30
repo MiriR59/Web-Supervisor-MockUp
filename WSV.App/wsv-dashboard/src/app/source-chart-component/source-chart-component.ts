@@ -3,8 +3,6 @@ import { NgIf, NgFor, AsyncPipe, DatePipe, DecimalPipe } from '@angular/common';
 import { BehaviorSubject, Observable, of, combineLatest, Subject } from 'rxjs';
 import { catchError, shareReplay, switchMap, exhaustMap, startWith, tap, map, finalize, merge } from 'rxjs';
 import { NgxEchartsDirective } from 'ngx-echarts';
-import { toObservable } from '@angular/core/rxjs-interop';
-import { distinctUntilChanged, mapTo } from 'rxjs';
 
 import { SourceDto } from '../models/source-dto'; 
 import { ReadingDto } from '../models/reading-dto';
@@ -21,6 +19,7 @@ type Points = {
   temp: XY[];
 };
 import type { EChartsOption } from 'echarts';
+import { LagDto } from '../models/lag-dto';
 
 @Component({
   selector: 'app-source-chart-component',
@@ -41,6 +40,8 @@ export class SourceChartComponent {
   private setEnabled$ = new Subject<boolean>();
   enabled$!: Observable<boolean>;
   isApplying = signal(false);
+
+  lag$!: Observable<LagDto>;
 
   points$!: Observable<Points>;
   rpmOptions$!: Observable<EChartsOption>;
@@ -87,6 +88,15 @@ export class SourceChartComponent {
         )       
       }),
       shareReplay({ bufferSize: 1, refCount: true}),
+    );
+
+    this.lag$ = reload$.pipe(
+      switchMap(() => this.readingService.getLagForSource(this.source.id)),
+      catchError((err) => {
+        console.error('Failed to load lag', err);
+        return of(null as any);
+      }),
+      shareReplay({ bufferSize: 1, refCount: true})
     );
 
     //Setup points for plotting

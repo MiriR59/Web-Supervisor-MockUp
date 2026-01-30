@@ -17,6 +17,47 @@
         Applying change...
     </span>
 
+    <div class="lag-badge" *ngIf="lag$ | async as lag">
+        <ng-container *ngIf="lag.state === 'Ok'; else lagNotOk">
+            <div class="lag-main">
+                <span class="lag-label">DB is</span>
+                <span class="lag-value">{{ lag.dbLag | number:'1.0-0' }}</span>
+                <span class="lag-unit">seconds behind</span>
+            </div>
+
+            <div class="lag-details">
+                <div class="lag-row">
+                    <span class="k">Generated:</span>
+                    <span class="v">{{ lag.latestGenerated | date:'HH:mm:ss' }}</span>
+                </div>
+
+                <div class="lag-row">
+                    <span class="k">Persisted:</span>
+                    <span class="v">{{ lag.latestDb | date:'HH:mm:ss' }}</span>
+                </div>
+            </div>
+        </ng-container>
+
+        <ng-template #lagNotOk>
+            <div *ngIf="lag.state === 'NoLiveData'" class="lag-main">
+                <span class="lag-label">No live data</span>
+            </div>
+
+            <div *ngIf="lag.state === 'DbEmpty'">
+                <div class="lag-main">
+                    <span class="lag-label">DB empty</span>
+                </div>
+
+                <div class="lag-details">
+                    <div class="lag-row">
+                        <span class="k">Generated:</span>
+                        <span class="v">{{ lag.latestGenerated | date:'HH:mm:ss' }}</span>
+                    </div>
+                </div>
+            </div>
+        </ng-template>
+    </div>
+
     <div *ngIf="readings$ | async as readings; else loading" class="content-grid">
         <div class="panel panel-table">
             <div class="panel-title">Readings</div>

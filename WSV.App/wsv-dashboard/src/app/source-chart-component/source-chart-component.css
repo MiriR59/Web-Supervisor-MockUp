@@ -103,3 +103,64 @@ button:disabled {
   font-size: 1em;
   margin-left: 15px;
 }
+
+.lag-badge {
+  float: right;
+  padding: 1px 14px;
+  margin-top: -45px;
+
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  background: #fafafa;
+
+  font-size: 13px;
+  color: #333;
+}
+
+.lag-title {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #666;
+  margin-bottom: 6px;
+}
+
+.lag-main {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  margin-bottom: 6px;
+}
+
+.lag-value {
+  font-size: 22px;
+  font-weight: 600;
+}
+
+.lag-unit {
+  font-size: 12px;
+  color: #666;
+}
+
+.lag-label {
+  font-size: 12px;
+  color: #666;
+}
+
+.lag-details {
+  font-size: 12px;
+}
+
+.lag-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.lag-row .k {
+  color: #666;
+}
+
+.lag-row .v {
+  font-family: monospace;
+}
