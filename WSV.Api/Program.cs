@@ -90,6 +90,8 @@ using (var scope = app.Services.CreateScope())
     var passwordService = services.GetRequiredService<IPasswordService>();
     var config = services.GetRequiredService<IConfiguration>();
 
+    await db.Database.MigrateAsync();
+
     var userSeedSections = new[]
     {
         "AdminSeed",
@@ -101,10 +103,12 @@ using (var scope = app.Services.CreateScope())
         await UserSeeder.SeedUserAsync(db, passwordService, config, section);
     }
 
+    // Intentional deletion of all readings to simulate new start every time
     await db.SourceReadings.ExecuteDeleteAsync();
     await db.Sources.ExecuteDeleteAsync();
-
     DbInitializer.Seed(db);
+
+    
 }
 
 // Configure the HTTP request pipeline.
