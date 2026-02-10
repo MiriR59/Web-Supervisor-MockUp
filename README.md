@@ -57,7 +57,42 @@ The primary goal of this project was to design and implement a backend architect
 
 ---
 
+## Demo Users & Authorization
+
+The application demonstrates role-based authorization with multiple user roles.
+
+On startup, demo users are seeded automatically.
+
+### Public Access (No Login)
+- Can access public endpoints
+- Sees only the first data source
+
+### Viewer
+- Username: `viewer`
+- Password: `Viewer123`
+- Can view all data sources
+- Cannot modify system state
+
+### Operator
+- Username: `operator`
+- Password: `Operator123`
+- Can view all data sources
+- Can enable / disable sources
+
+### Admin
+- Username: `admin`
+- Password: `Admin123`
+- Full access to all protected endpoints
+- Intended to manage advanced administrative operations (future extension)
+
+---
+
 ## Getting Started
+
+This setup demonstrates:
+- Public vs protected endpoints
+- JWT-based authentication
+- Role-based authorization policies
 
 ### Prerequisites
 - .NET SDK (matching the solution)
