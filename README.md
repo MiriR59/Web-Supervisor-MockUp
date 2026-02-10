@@ -63,6 +63,11 @@ The primary goal of this project was to design and implement a backend architect
 - .NET SDK (matching the solution)
 - Node.js + npm
 
+### Restore .NET local tools
+```bash
+dotnet tool restore
+```
+
 ### Run Backend (API)
 
 ```bash
