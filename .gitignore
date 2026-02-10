@@ -1,10 +1,30 @@
-#.Net
+# =========================
+# .NET
+# =========================
+
 # Build results
 bin/
 obj/
 out/
 
-# Visual Studio / VSCode
+# Publish output
+publish/
+*.pubxml
+*.publishsettings
+
+# Dotnet local tools
+.tools/
+
+# SQLite database
+*.db
+*.db-shm
+*.db-wal
+*.sqlite-journal
+
+# =========================
+# Visual Studio / VS Code
+# =========================
+
 .vs/
 .vscode/
 *.user
@@ -14,45 +34,32 @@ out/
 *.log
 *.sln.docstates
 
-# Temp files
-*.tmp
-*.temp
+# =========================
+# Angular / Node
+# =========================
 
-# Publish output
-publish/
-*.pubxml
-*.publishsettings
-
-# Dotnet tools local state
-.tools/
-
-# SQLite database
-*.db
-*.db-shm
-*.db-wal
-
-# Only ignore if accidental:
-*.sqlite-journal
-
-# Angular
 # Node modules
-ClientApp/node_modules/
+node_modules/
 
-# Compiled app
-ClientApp/dist/
-ClientApp/build/
+# Angular build output
+dist/
+build/
 
 # Angular cache
-ClientApp/.angular/
-ClientApp/.browser/
+.angular/
+.browser/
 
 # NPM logs
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# Environment files (DO NOT commit secrets)
-ClientApp/src/environments/*.local.ts
+# Environment files (do not commit secrets)
+src/environments/*.local.ts
+
+# =========================
+# OS-specific
+# =========================
 
 # macOS
 .DS_Store
@@ -64,5 +71,6 @@ desktop.ini
 # Linux
 *~
 
+# Dev containers / history
 .devcontainer/
 .history/
