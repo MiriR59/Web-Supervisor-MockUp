@@ -47,7 +47,7 @@ The primary goal of this project was to design and implement a backend architect
    - historical data (DB-based)
    - management endpoints (protected)
 
-------
+---
 
 ## Repository Structure
 
@@ -56,3 +56,24 @@ The primary goal of this project was to design and implement a backend architect
 - `WSV.sln` – .NET solution
 
 ---
+
+## Getting Started
+
+### Prerequisites
+- .NET SDK (matching the solution)
+- Node.js + npm
+
+### Run Backend (API)
+
+```bash
+cd WSV.Api
+dotnet restore
+dotnet run
+```
+
+### Run Frontend (Angular)
+```bash
+cd WSV.App
+npm install
+npm start
+```
