@@ -95,8 +95,9 @@ This setup demonstrates:
 - Role-based authorization policies
 
 ### Prerequisites
-- .NET SDK (matching the solution)
-- Node.js + npm
+- .NET 8 SDK
+- Node.js (LTS recommended)
+- npm (bundled with Node.js)
 
 ### Restore .NET local tools
 ```bash
