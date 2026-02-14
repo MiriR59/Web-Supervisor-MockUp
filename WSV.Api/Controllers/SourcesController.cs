@@ -2,7 +2,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authorization;
 using WSV.Api.Data;
-using SQLitePCL;
 
 namespace WSV.Api.Controllers;
 

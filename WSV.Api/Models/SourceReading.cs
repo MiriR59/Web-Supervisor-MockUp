@@ -11,8 +11,6 @@ public class SourceReading
 
     public DateTimeOffset Timestamp { get; set;}
 
-    public long TimestampUnixMs { get; set; }
-
     public string Status { get; set; } = string.Empty;
 
     public int RPM { get; set; }

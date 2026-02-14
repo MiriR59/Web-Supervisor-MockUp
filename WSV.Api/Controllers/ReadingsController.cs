@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Mvc.ActionConstraints;
 using Microsoft.IdentityModel.Tokens;
 using WSV.Api.Models;
 using System.Net;
-using SQLitePCL;
+using Npgsql;
 
 namespace WSV.Api.Controllers;
 
@@ -54,14 +54,12 @@ public class ReadingsController : ControllerBase
 
         if(from.HasValue)
         {
-            var fromMs = from.Value.ToUnixTimeMilliseconds();
-            query = query.Where(u => u.TimestampUnixMs >= fromMs);    
+            query = query.Where(u => u.Timestamp >= from.Value);    
         }
 
         if(to.HasValue)
         {
-            var toMs = to.Value.ToUnixTimeMilliseconds();
-            query = query.Where(v => v.TimestampUnixMs < toMs);
+            query = query.Where(v => v.Timestamp < to.Value);
             cacheFiltered = cacheFiltered.Where(r => r.Timestamp < to.Value);
         }
 
@@ -70,7 +68,7 @@ public class ReadingsController : ControllerBase
         var take = Math.Clamp(limit ?? 1000, 1, 5000);
         
         var readings = await query 
-            .OrderByDescending(r => r.TimestampUnixMs)  
+            .OrderByDescending(r => r.Timestamp)  
             .Take(take)
             // This is where whole query is executed using ToListAsync, FirstAsync etc.
             // Everthing up to this points is just preparation for actual SDF exectuion here.   
@@ -133,15 +131,13 @@ public class ReadingsController : ControllerBase
 
         if(from.HasValue)
         {
-            var fromMs = from.Value.ToUnixTimeMilliseconds();
-            query = query.Where(u => u.TimestampUnixMs >= fromMs);    
+            query = query.Where(u => u.Timestamp >= from.Value);    
             cacheFiltered = cacheFiltered.Where(r => r.Timestamp >= from.Value);
         }
 
         if(to.HasValue)
         {
-            var toMs = to.Value.ToUnixTimeMilliseconds();
-            query = query.Where(v => v.TimestampUnixMs < toMs);
+            query = query.Where(v => v.Timestamp < to.Value);
             cacheFiltered = cacheFiltered.Where(r => r.Timestamp < to.Value);
         }
 
@@ -150,7 +146,7 @@ public class ReadingsController : ControllerBase
         var take = Math.Clamp(limit ?? 1000, 1, 5000);
         
         var readings = await query 
-            .OrderByDescending(r => r.TimestampUnixMs)  
+            .OrderByDescending(r => r.Timestamp)  
             .Take(take)
             // This is where whole query is executed using ToListAsync, FirstAsync etc.
             // Everthing up to this points is just preparation for actual SDF exectuion here.   
@@ -220,7 +216,7 @@ public class ReadingsController : ControllerBase
         var latestDb = await _context.SourceReadings
             .AsNoTracking()
             .Where(r => r.SourceId == sourceId)
-            .MaxAsync(r => (long?)r.TimestampUnixMs);
+            .MaxAsync(r => (DateTimeOffset?)r.Timestamp);
 
         if(latestDb is null)
             return Ok(new LagDto
@@ -230,15 +226,15 @@ public class ReadingsController : ControllerBase
                 LatestGenerated = latestGenerated.Timestamp
             });
 
-        var lag = latestGenerated.TimestampUnixMs - latestDb.Value;
-        var lagOut = Math.Max(0, lag / 1000.0);
+        var lag = latestGenerated.Timestamp - latestDb.Value;
+        var lagOut = Math.Max(0, lag.TotalSeconds);
 
         return Ok (new LagDto
         {
             SourceId = sourceId,
             State = LagState.Ok,
             LatestGenerated = latestGenerated.Timestamp,
-            LatestDb = DateTimeOffset.FromUnixTimeMilliseconds(latestDb.Value),
+            LatestDb = latestDb.Value,
             DbLag = lagOut
         });
     }

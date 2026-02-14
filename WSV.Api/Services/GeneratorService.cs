@@ -30,7 +30,7 @@ public class GeneratorService : BackgroundService
         // Loops until stopped by cancellation
         while (!stoppingToken.IsCancellationRequested)
         {
-            // Unnecessary to load sources again and again, add reactivity to Enable/disable
+            // Unnecessary to load sources again and again, add reactivity to Enable/disable, add flag for reload
             List<Source> sources;
             using(var scope = _scopeFactory.CreateScope())
             {
@@ -48,10 +48,10 @@ public class GeneratorService : BackgroundService
                 _readingCacheService.SetRecentReading(reading);
 
                 // Queue reading in the channel
-                await _readingBufferService.EnqueueAsync(reading, stoppingToken);
+                _readingBufferService.Enqueue(reading);
             }
 
-            await Task.Delay(TimeSpan.FromSeconds(10), stoppingToken);
+            await Task.Delay(TimeSpan.FromSeconds(1), stoppingToken);
         }
     }
 }

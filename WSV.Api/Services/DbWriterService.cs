@@ -1,4 +1,3 @@
-using Microsoft.EntityFrameworkCore;
 using WSV.Api.Data;
 using WSV.Api.Models;
 
@@ -12,10 +11,10 @@ public class DbWriterService : BackgroundService
 
     private static readonly TimeSpan TickInterval = TimeSpan.FromSeconds(10);
 
-    private const int NormalBatch = 6;
-    private const int SlowBatch = 1;
+    private const int NormalBatch = 60;
+    private const int SlowBatch = 3;
 
-    private static readonly TimeSpan CycleLength = TimeSpan.FromMinutes(5);
+    private static readonly TimeSpan CycleLength = TimeSpan.FromMinutes(6);
     private static readonly TimeSpan SlowDuration = TimeSpan.FromMinutes(3);
 
     private readonly DateTime _startUtc = DateTime.UtcNow;
@@ -39,13 +38,14 @@ public class DbWriterService : BackgroundService
             var batchSize = IsSlowMode(DateTime.UtcNow) ? SlowBatch : NormalBatch;
 
             var batch = new List<SourceReading>(capacity: batchSize);
-
+           
             for (int i = 0; i < batchSize; i++)
             {
-                if (!_buffer.TryDequeue(out var reading))
+                var reading = _buffer.Dequeue();
+                if(reading is not null)
+                    batch.Add(reading);
+                else
                     break;
-
-                batch.Add(reading);
             }
 
             if (batch.Count == 0)
@@ -58,16 +58,17 @@ public class DbWriterService : BackgroundService
 
                 db.SourceReadings.AddRange(batch);
                 await db.SaveChangesAsync(stoppingToken);
-
-                _logger.LogInformation("DB writer tick: target={Target}, wrote={Wrote}, buffered={Buffered}, mode={Mode}",
-                    batchSize, batch.Count, _buffer.ApproximateCount, batchSize == SlowBatch ? "SLOW" : "NORMAL");
-
             }
             catch (Exception ex)
             {
                 // Error logging
-                _logger.LogError(ex, "DB writer failed to save batch of {Count} readings,", batch.Count);
+                _logger.LogError(ex, "DB writer failed. Lost {Count} readings from {from} to {to}.",
+                    batch.Count, batch.First().Timestamp, batch.Last().Timestamp);
+                continue;
             }
+
+            _logger.LogInformation("DB writer tick: target={Target}, wrote={Wrote}, buffered={Buffered}, mode={Mode}",
+                batchSize, batch.Count, _buffer.BufferedCount, batchSize == SlowBatch ? "SLOW" : "NORMAL");
         }
     }
     // %  returns what remains after the division, slowmode at the start of each 5 min cycle
@@ -75,7 +76,6 @@ public class DbWriterService : BackgroundService
     {
         var elapsed = nowUtc - _startUtc;
         var withinCycle = TimeSpan.FromSeconds(elapsed.TotalSeconds % CycleLength.TotalSeconds);
-
         return withinCycle < SlowDuration;
     }
 }

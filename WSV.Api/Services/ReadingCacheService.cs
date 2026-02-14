@@ -1,3 +1,4 @@
+using WSV.Api.Controllers;
 using WSV.Api.Models;
 
 namespace WSV.Api.Services;
@@ -6,7 +7,7 @@ public class ReadingCacheService : IReadingCacheService
 {
     private readonly ILogger<ReadingCacheService> _logger;
     private static readonly TimeSpan Retention = TimeSpan.FromSeconds(60);
-    private readonly Dictionary<int, Queue<SourceReading>> _buffers = new();
+    private readonly Dictionary<int, Queue<SourceReading>> _cache = new();
     private readonly Dictionary<int, SourceReading> _latest = new();
     private readonly object _lock = new();
 
@@ -14,6 +15,7 @@ public class ReadingCacheService : IReadingCacheService
         ILogger<ReadingCacheService> logger)
     {
         _logger = logger;
+        _logger.LogInformation("ReadingCacheService initialized with {retentions} second retention.", Retention.TotalSeconds);
     }
 
     public IReadOnlyList<SourceReading> GetRecentOne(int sourceId)
@@ -22,7 +24,7 @@ public class ReadingCacheService : IReadingCacheService
         {
             ExpireOldReadingsLock(sourceId, DateTimeOffset.UtcNow);
 
-            if (_buffers.TryGetValue(sourceId, out var q) && q.Count > 0)
+            if (_cache.TryGetValue(sourceId, out var q) && q.Count > 0)
                 return q.ToList();
 
             return Array.Empty<SourceReading>();
@@ -44,19 +46,23 @@ public class ReadingCacheService : IReadingCacheService
 
             _latest[reading.SourceId] = reading;
 
-            if (!_buffers.TryGetValue(reading.SourceId, out var q))
+            if (!_cache.TryGetValue(reading.SourceId, out var q))
             {
                 q = new Queue<SourceReading>();
-                _buffers[reading.SourceId] = q;
+                _cache[reading.SourceId] = q;
             }
 
             q.Enqueue(reading);
 
-            _logger.LogInformation(
-                "CACHE sanity: count={count}, newest={newest}",
-                q.Count,
-                q.Last().Timestamp.ToString("O")
-            );
+            if (q.Count == 1)
+            {
+                _logger.LogInformation("Started caching data for source {sourceId}", reading.SourceId);
+            }
+
+            if (q.Count > 150)
+            {
+                _logger.LogWarning("Cache for source {sourceId} has {count}", reading.SourceId, q.Count);
+            }
 
             ExpireQueueLock(q, now);
         }
@@ -64,13 +70,13 @@ public class ReadingCacheService : IReadingCacheService
 
     private void ExpireOldReadingsLock(int sourceId, DateTimeOffset now)
     {
-        if (!_buffers.TryGetValue(sourceId, out var q))
+        if (!_cache.TryGetValue(sourceId, out var q))
             return;
 
         ExpireQueueLock(q, now);
 
         if (q.Count == 0)
-            _buffers.Remove(sourceId);
+            _cache.Remove(sourceId);
     }
 
     private static void ExpireQueueLock(Queue<SourceReading> q, DateTimeOffset now)

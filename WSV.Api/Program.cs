@@ -2,7 +2,6 @@ using Microsoft.EntityFrameworkCore;
 using WSV.Api.Data;
 using WSV.Api.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using System.Text.Json.Serialization;
@@ -12,12 +11,12 @@ var builder = WebApplication.CreateBuilder(args);
 // Register DbContext and tell EF Core to use SQLite with given string in appsettings.json
 // 'DefaultConnection' name must match to the one in appsettings.json
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // Singleton only creates one instance of cache for whole app
 builder.Services.AddSingleton<ISourceBehaviourService, SourceBehaviourService>();
 builder.Services.AddSingleton<IReadingCacheService, ReadingCacheService>();
-builder.Services.AddSingleton<IReadingBufferService, ReadingBufferService>();
+builder.Services.AddSingleton<IReadingBufferService, DynamicBufferService>();
 
 builder.Services.AddHostedService<GeneratorService>();
 builder.Services.AddHostedService<DbWriterService>();
@@ -103,10 +102,19 @@ using (var scope = app.Services.CreateScope())
         await UserSeeder.SeedUserAsync(db, passwordService, config, section);
     }
 
-    // Intentional deletion of all readings to simulate new start every time
-    await db.SourceReadings.ExecuteDeleteAsync();
-    await db.Sources.ExecuteDeleteAsync();
-    DbInitializer.Seed(db);
+    if (app.Environment.IsDevelopment())
+    {
+        await db.SourceReadings.ExecuteDeleteAsync();
+        await db.Sources.ExecuteDeleteAsync();
+        DbInitializer.Seed(db);
+    }
+    else
+    {
+        if (!await db.Sources.AnyAsync())
+        {
+            DbInitializer.Seed(db);
+        }
+    }
 
     
 }

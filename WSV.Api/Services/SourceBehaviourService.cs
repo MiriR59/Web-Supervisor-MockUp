@@ -47,7 +47,6 @@ public class SourceBehaviourService : ISourceBehaviourService
         {
             SourceId = source.Id,
             Timestamp = now,
-            TimestampUnixMs = now.ToUnixTimeMilliseconds(),
             Status = "Stopped",
             RPM = newRPM,
             Power = 0,
@@ -69,7 +68,6 @@ public class SourceBehaviourService : ISourceBehaviourService
         {
             SourceId = source.Id,
             Timestamp = now,
-            TimestampUnixMs = now.ToUnixTimeMilliseconds(),
             Status = "Running",
             RPM = rpm,
             Power = power,
@@ -95,7 +93,6 @@ public class SourceBehaviourService : ISourceBehaviourService
         {
             SourceId = source.Id,
             Timestamp = now,
-            TimestampUnixMs = now.ToUnixTimeMilliseconds(),
             Status = "Running",
             RPM = rpm,
             Power = power,
@@ -117,7 +114,6 @@ public class SourceBehaviourService : ISourceBehaviourService
         {
             SourceId = source.Id,
             Timestamp = now,
-            TimestampUnixMs = now.ToUnixTimeMilliseconds(),
             Status = "Running",
             RPM = rpm,
             Power = power,
