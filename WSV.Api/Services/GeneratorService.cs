@@ -10,13 +10,13 @@ public class GeneratorService : BackgroundService
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ISourceBehaviourService _behaviourService;
     private readonly IReadingCacheService _readingCacheService;
-    private readonly IReadingBufferService _readingBufferService;
+    private readonly IDynamicBufferService _readingBufferService;
 
     public GeneratorService(
         IServiceScopeFactory scopeFactory,
         ISourceBehaviourService behaviourService,
         IReadingCacheService readingCacheService,
-        IReadingBufferService readingBufferService)
+        IDynamicBufferService readingBufferService)
     {
         _scopeFactory = scopeFactory;
         _behaviourService = behaviourService;
@@ -31,6 +31,7 @@ public class GeneratorService : BackgroundService
         while (!stoppingToken.IsCancellationRequested)
         {
             // Unnecessary to load sources again and again, add reactivity to Enable/disable, add flag for reload
+            // CHANGE THIS
             List<Source> sources;
             using(var scope = _scopeFactory.CreateScope())
             {

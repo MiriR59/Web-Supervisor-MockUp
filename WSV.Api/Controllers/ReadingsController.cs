@@ -3,11 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using WSV.Api.Data;
 using WSV.Api.Services;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc.ActionConstraints;
-using Microsoft.IdentityModel.Tokens;
 using WSV.Api.Models;
-using System.Net;
-using Npgsql;
 
 namespace WSV.Api.Controllers;
 

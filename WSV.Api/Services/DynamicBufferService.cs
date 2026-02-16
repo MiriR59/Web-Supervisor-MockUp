@@ -1,9 +1,11 @@
 using System.Threading.Channels;
+using Microsoft.Extensions.Options;
 using WSV.Api.Models;
+using WSV.Api.Configuration;
 
 namespace WSV.Api.Services;
 
-public class DynamicBufferService : IReadingBufferService
+public class DynamicBufferService : IDynamicBufferService
 {
     private readonly Channel<SourceReading> _primary;
     private readonly List<Channel<SourceReading>> _overflowChannels = new();
@@ -23,16 +25,15 @@ public class DynamicBufferService : IReadingBufferService
 
     public DynamicBufferService(
         ILogger<DynamicBufferService> logger,
-        int capacityPrimary = 200,
-        int capacityOverflow = 100,
-        int maxOverflowChannels = 2)
+        IOptions<BufferOptions> options)
     {
         _logger = logger;
-        _capacityPrimary = capacityPrimary;
-        _capacityOverflow = capacityOverflow;
-        _maxOverflowChannels = maxOverflowChannels;
+        var opt = options.Value;
+        _capacityPrimary = opt.CapacityPrimary;
+        _capacityOverflow = opt.CapacityOverflow;
+        _maxOverflowChannels = opt.MaxOverflowChannels;
 
-        _primary = Channel.CreateBounded<SourceReading>(new BoundedChannelOptions(capacityPrimary)
+        _primary = Channel.CreateBounded<SourceReading>(new BoundedChannelOptions(_capacityPrimary)
         {
             FullMode = BoundedChannelFullMode.DropWrite,
             SingleReader = true,

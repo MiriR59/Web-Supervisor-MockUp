@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using WSV.Api.Data;
 using WSV.Api.Services;
+using WSV.Api.Configuration;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
@@ -16,14 +17,19 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 // Singleton only creates one instance of cache for whole app
 builder.Services.AddSingleton<ISourceBehaviourService, SourceBehaviourService>();
 builder.Services.AddSingleton<IReadingCacheService, ReadingCacheService>();
-builder.Services.AddSingleton<IReadingBufferService, DynamicBufferService>();
+builder.Services.AddSingleton<IDynamicBufferService, DynamicBufferService>();
 
 builder.Services.AddHostedService<GeneratorService>();
 builder.Services.AddHostedService<DbWriterService>();
 builder.Services.AddScoped<IPasswordService, PasswordService>();
 builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
 
-// Add services to the container.
+builder.Services.Configure<BufferOptions>(
+    builder.Configuration.GetSection("BufferOptions"));
+
+builder.Services.Configure<WriterOptions>(
+    builder.Configuration.GetSection("WriterOptions"));
+
 builder.Services.AddControllers()
     .AddJsonOptions(o =>
         o.JsonSerializerOptions.Converters.Add(
@@ -31,12 +37,21 @@ builder.Services.AddControllers()
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// Services necessary for token auth
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("CanViewAllSources", p =>
+        p.RequireRole("Admin", "Operator", "Viewer"));
+    
+    options.AddPolicy("CanToggleSources", p =>
+        p.RequireRole("Admin", "Operator"));
+});
+
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
     options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
 })
+
 .AddJwtBearer(options =>
 {
     var jwtSection = builder.Configuration.GetSection("Jwt");
@@ -68,15 +83,6 @@ builder.Services.AddAuthentication(options =>
         RoleClaimType = System.Security.Claims.ClaimTypes.Role,
         NameClaimType = System.Security.Claims.ClaimTypes.Name
     };
-});
-
-builder.Services.AddAuthorization(options =>
-{
-    options.AddPolicy("CanViewAllSources", p =>
-        p.RequireRole("Admin", "Operator", "Viewer"));
-    
-    options.AddPolicy("CanToggleSources", p =>
-        p.RequireRole("Admin", "Operator"));
 });
 
 var app = builder.Build();
@@ -126,10 +132,12 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+app.UseExceptionHandler("/error");
 app.UseHttpsRedirection();
 
 app.UseAuthentication();
 app.UseAuthorization();
+
 
 app.MapControllers();
 

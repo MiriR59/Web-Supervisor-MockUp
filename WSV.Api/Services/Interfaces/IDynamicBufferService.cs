@@ -2,7 +2,7 @@ using WSV.Api.Models;
 
 namespace WSV.Api.Services;
 
-public interface IReadingBufferService
+public interface IDynamicBufferService
 {
     int BufferedCount { get;}
     void Enqueue(SourceReading reading);
