@@ -26,9 +26,10 @@ builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
 
 builder.Services.Configure<BufferOptions>(
     builder.Configuration.GetSection("BufferOptions"));
-
 builder.Services.Configure<WriterOptions>(
     builder.Configuration.GetSection("WriterOptions"));
+builder.Services.Configure<CacheOptions>(
+    builder.Configuration.GetSection("CacheOptions"));
 
 builder.Services.AddControllers()
     .AddJsonOptions(o =>

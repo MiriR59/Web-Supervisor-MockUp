@@ -1,21 +1,29 @@
-using WSV.Api.Controllers;
+using Microsoft.Extensions.Options;
 using WSV.Api.Models;
+using WSV.Api.Configuration;
 
 namespace WSV.Api.Services;
 
 public class ReadingCacheService : IReadingCacheService
 {
     private readonly ILogger<ReadingCacheService> _logger;
-    private static readonly TimeSpan Retention = TimeSpan.FromSeconds(60);
+    private readonly TimeSpan _retention;
+    private readonly int _warningThreshold;
     private readonly Dictionary<int, Queue<SourceReading>> _cache = new();
     private readonly Dictionary<int, SourceReading> _latest = new();
     private readonly object _lock = new();
 
     public ReadingCacheService(
-        ILogger<ReadingCacheService> logger)
+        ILogger<ReadingCacheService> logger,
+        IOptions<CacheOptions> options)
     {
         _logger = logger;
-        _logger.LogInformation("ReadingCacheService initialized with {retentions} second retention.", Retention.TotalSeconds);
+
+        var opt = options.Value;
+        _retention = opt.Retention;
+        _warningThreshold = opt.WarningThreshold;
+
+        _logger.LogInformation("ReadingCacheService initialized with {retention} second retention.", _retention.TotalSeconds);
     }
 
     public IReadOnlyList<SourceReading> GetRecentOne(int sourceId)
@@ -56,15 +64,15 @@ public class ReadingCacheService : IReadingCacheService
 
             if (q.Count == 1)
             {
-                _logger.LogInformation("Started caching data for source {sourceId}", reading.SourceId);
+                _logger.LogInformation("Started caching data for source {SourceId}", reading.SourceId);
             }
 
-            if (q.Count > 150)
+            if (q.Count > _warningThreshold)
             {
-                _logger.LogWarning("Cache for source {sourceId} has {count}", reading.SourceId, q.Count);
+                _logger.LogWarning("Cache for source {SourceId} has {Count} - retention may be too high.", reading.SourceId, q.Count);
             }
 
-            ExpireQueueLock(q, now);
+            ExpireQueueLock(q, now, _retention);
         }
     }
 
@@ -73,15 +81,15 @@ public class ReadingCacheService : IReadingCacheService
         if (!_cache.TryGetValue(sourceId, out var q))
             return;
 
-        ExpireQueueLock(q, now);
+        ExpireQueueLock(q, now, _retention);
 
         if (q.Count == 0)
             _cache.Remove(sourceId);
     }
 
-    private static void ExpireQueueLock(Queue<SourceReading> q, DateTimeOffset now)
+    private static void ExpireQueueLock(Queue<SourceReading> q, DateTimeOffset now, TimeSpan retention)
     {
-        var cutoff = now - Retention;
+        var cutoff = now - retention;
 
         while (q.Count > 0)
         {
