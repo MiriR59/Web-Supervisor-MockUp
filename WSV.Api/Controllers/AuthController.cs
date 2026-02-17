@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using WSV.Api.Models;
 using WSV.Api.Services;
 using WSV.Api.Data;
 

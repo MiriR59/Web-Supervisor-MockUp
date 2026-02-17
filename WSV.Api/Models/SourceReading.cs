@@ -1,5 +1,3 @@
-using System.ComponentModel.DataAnnotations;
-
 namespace WSV.Api.Models;
 
 public class SourceReading
