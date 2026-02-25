@@ -17,7 +17,7 @@ public static class DbInitializer
                 Description = "Wave",
                 IsEnabled = true,
                 IsPublic = true,
-                BehaviourProfile = "Wave"
+                Behaviour = BehaviourProfile.Stable
             },
 
             new Source
@@ -25,7 +25,7 @@ public static class DbInitializer
                 Name = "Machine Beta",
                 Description = "Stable",
                 IsEnabled = true,
-                BehaviourProfile = "Stable"
+                Behaviour = BehaviourProfile.Wave
             },
 
             new Source
@@ -33,7 +33,7 @@ public static class DbInitializer
                 Name = "Machine Gamma",
                 Description = "Spiky",
                 IsEnabled = true,
-                BehaviourProfile = "Spiky"
+                Behaviour = BehaviourProfile.Spiky
             }
         };
 

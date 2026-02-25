@@ -1,6 +1,7 @@
 using WSV.Api.Data;
 using WSV.Api.Models;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Http.HttpResults;
 
 namespace WSV.Api.Services;
 
@@ -17,35 +18,47 @@ public class ReadingService : IReadingService
         _readingCacheService = readingCacheService;
     }
 
-    public async Task<List<ReadingDto>> GetHistoryAsync(
-        int sourceId, DateTimeOffset? from, DateTimeOffset? to, int? limit)
+    public async Task<List<ReadingDto>> GetHistoryAsync(int sourceId, DateTimeOffset? from, DateTimeOffset? to, int? limit)
+    {
+        var end = to ?? DateTimeOffset.UtcNow;
+        var take = Math.Clamp(limit ?? 1000, 1, 5000);
+
+        var query = _context.SourceReadings
+            .AsNoTracking()
+            .Where(t => t.SourceId == sourceId)
+            .Where(v => v.Timestamp < end);
+
+        if(from.HasValue)
+            query = query.Where(u => u.Timestamp >= from);
+
+        var count = await query.CountAsync();
+
+        if(count > take)
+            return await GetAggregatedHistoryAsync(sourceId, from, end, take, );
+        
+        return await GetRawHistoryAsync(sourceId, from, end, take);
+    }
+
+    public async Task<List<ReadingDto>> GetRawHistoryAsync(int sourceId, DateTimeOffset? from, DateTimeOffset to, int limit)
     {
         var query = _context.SourceReadings
             .AsNoTracking()
-            .Where(t => t.SourceId == sourceId);
-
-        var cacheReadings = _readingCacheService.GetRecentOne(sourceId);
-        IEnumerable<SourceReading> cacheFiltered = cacheReadings;
+            .Where(t => t.SourceId == sourceId)
+            .Where(v => v.Timestamp < to);
 
         if(from.HasValue)
         {
             query = query.Where(u => u.Timestamp >= from.Value);    
         }
-
-        if(to.HasValue)
-        {
-            query = query.Where(v => v.Timestamp < to.Value);
-            cacheFiltered = cacheFiltered.Where(r => r.Timestamp < to.Value);
-        }
-
-        // Hard cap of 5000 readings to prevent accidental overloading
-        // Basic soft cap stays at 1000
-        var take = Math.Clamp(limit ?? 1000, 1, 5000);
         
-        var readings = await query 
+        var readings = await query   
             .OrderByDescending(r => r.Timestamp)  
-            .Take(take)  
+            .Take(limit)  
             .ToListAsync();
+
+        var cacheReadings = _readingCacheService.GetRecentOne(sourceId);
+        IEnumerable<SourceReading> cacheFiltered = cacheReadings;
+        cacheFiltered = cacheFiltered.Where(r => r.Timestamp < to);
 
         var merged = new Dictionary<DateTimeOffset, ReadingDto>();
         foreach (var d in cacheFiltered.Select(MapToDto))
@@ -55,8 +68,46 @@ public class ReadingService : IReadingService
 
         return merged.Values
             .OrderByDescending(r => r.Timestamp)
-            .Take(take)
+            .Take(limit)
             .ToList();
+    }
+
+    public async Task<List<ReadingDto>> GetAggregatedHistoryAsync(int sourceId, DateTimeOffset? from, DateTimeOffset to, int limit)
+    {
+        // ADD RAW SQL QUERY, USING LINQ IS SUPER SLOW HERE, IF I HAD BIG DATA IT WOULD BE SLOW AF
+        // CHANGE ALL BELOW
+        var query = _context.SourceReadings
+            .AsNoTracking()
+            .Where(t => t.SourceId == sourceId)
+            .Where(u => u.Timestamp >= from)
+            .Where(v => v.Timestamp < to);
+
+        var readingsCount = query.Count();
+        int bucketSize = readingsCount / limit;
+        if(readingsCount % limit != 0)
+            bucketSize ++;
+
+        double interval = (from.ToUnixTimeSeconds() - to.ToUnixTimeSeconds()) / bucketSize; // IS THIS ACCURATE? OR WILL I LOSE SOME INFO DUE TO ROUNDING>?
+
+        for(int i = 0; i < bucketSize; i++)
+        {
+            var dtoInterval = query
+                .Where(u => u.Timestamp >= from)
+                .Where(v => v.Timestamp < to);
+            var dtoPower = dtoInterval.Average(w => w.Power);
+            var dtoRpm = dtoInterval.Average(w => w.RPM);
+            var dtoTemperature = dtoInterval.Average(w => w.Temperature);
+
+            ReadingDto dtoOut = new ReadingDto
+            {
+                SourceId = sourceId,
+                Timestamp = reading.Timestamp,
+                Status = reading.Status,
+                RPM = dtoRpm.,
+                Power = reading.Power,
+                Temperature = reading.Temperature
+            };
+        }  
     }
 
     public async Task<LagDto> GetLagAsync(int sourceId)

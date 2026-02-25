@@ -13,7 +13,7 @@ public class Source
     
     public Boolean IsPublic { get; set; } = false;
 
-    public string BehaviourProfile { get; set; } = string.Empty;
+    public BehaviourProfile Behaviour { get; set; }
 
     public List<SourceReading> Readings { get; set; } = new();
 

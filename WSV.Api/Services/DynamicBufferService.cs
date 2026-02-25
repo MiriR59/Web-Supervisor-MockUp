@@ -20,7 +20,13 @@ public class DynamicBufferService : IDynamicBufferService
     
     private readonly object _lock = new();
 
-    private long _droppedCount = 0;
+    private int _droppedCount = 0;
+    private int _droppedSinceLast = 0;
+    private int _droppedInterval = 10;
+    private DateTime _lastDropTime = DateTime.UtcNow;
+
+    private bool _channelsAtMax = false;
+
     private readonly ILogger<DynamicBufferService> _logger;
 
     public DynamicBufferService(
@@ -75,11 +81,22 @@ public class DynamicBufferService : IDynamicBufferService
                 }
                     
                 _droppedCount ++;
-                int currentCount = _primary.Reader.Count + _overflowChannels.Sum(c => c.Reader.Count);
-                _logger.LogWarning("Reading dropped - buffer at full capacity. Total dropped: {dropped}. Buffered count: {buffered}/{capacity}.",
-                _droppedCount,
-                currentCount,
-                _capacityPrimary + (_overflowChannels.Count * _capacityOverflow));
+                _droppedSinceLast ++;
+
+                if(_droppedSinceLast > 0 && (DateTime.UtcNow - _lastDropTime).TotalSeconds >= _droppedInterval)
+                {
+                    int currentCount = _primary.Reader.Count + _overflowChannels.Sum(c => c.Reader.Count);
+                    _logger.LogWarning("Dropped {count} readings in last {interval} seconds. Total dropped: {dropped}. Buffered count: {buffered}/{capacity}.",
+                    _droppedSinceLast,
+                    _droppedInterval,
+                    _droppedCount,
+                    currentCount,
+                    _capacityPrimary + (_overflowChannels.Count * _capacityOverflow));
+
+                    _droppedSinceLast = 0;
+                    _lastDropTime = DateTime.UtcNow;
+                }
+                    
             }
         }
     }
@@ -99,8 +116,12 @@ public class DynamicBufferService : IDynamicBufferService
     {
         if(_overflowChannels.Count >= _maxOverflowChannels)
         {
-            _logger.LogWarning("Overflow channel couldnt be created, maximum channels reached {channels}/{maximum}. Data loss imminent", 
-            _overflowChannels.Count, _maxOverflowChannels);
+            if(_channelsAtMax == false)
+            {
+                _logger.LogWarning("Overflow channel couldnt be created, maximum channels reached {channels}/{maximum}. Data loss imminent", 
+                _overflowChannels.Count, _maxOverflowChannels);
+                _channelsAtMax = true;
+            }
             return;
         }
         
@@ -151,6 +172,7 @@ public class DynamicBufferService : IDynamicBufferService
                         _overflowChannels.RemoveAt(_overflowChannels.Count - 1);
                         _logger.LogInformation("Overflow channel #{number} was deleted. Total buffer capacity now {total}.",
                         channelNumber, _capacityPrimary + (_capacityOverflow * _overflowChannels.Count));
+                        _channelsAtMax = false;
                     }
                         
                     else
@@ -163,6 +185,7 @@ public class DynamicBufferService : IDynamicBufferService
                     _overflowChannels.RemoveAt(_overflowChannels.Count - 1);
                     _logger.LogInformation("Overflow channel #{number} was deleted. Total buffer capacity now {total}.",
                     channelNumber, _capacityPrimary + (_capacityOverflow * _overflowChannels.Count));
+                    _channelsAtMax = false;
                 }
                     
             }

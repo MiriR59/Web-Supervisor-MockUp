@@ -24,11 +24,11 @@ public class SourceBehaviourService : ISourceBehaviourService
             return GenerateStoppedReading(source, now, previous);
         }
 
-        return source.BehaviourProfile switch
+        return source.Behaviour switch
         {
-            "Stable" => GenerateStableReading(source, now),
-            "Wave" => GenerateWaveReading(source, now, t),
-            "Spiky" => GenerateSpikyReading(source, now),
+            BehaviourProfile.Stable => GenerateStableReading(source, now),
+            BehaviourProfile.Wave => GenerateWaveReading(source, now, t),
+            BehaviourProfile.Spiky => GenerateSpikyReading(source, now),
 
             _ => GenerateStableReading(source, now),
         };

@@ -32,6 +32,10 @@ public class ReadingsController : ControllerBase
         [FromQuery] int? limit
         )
     {
+        var source = await _readingService.GetSourceAsync(sourceId);
+        if(source is null)
+            return NotFound();
+
         return Ok(await _readingService.GetHistoryAsync(sourceId, from, to, limit));
     }
 
@@ -44,7 +48,6 @@ public class ReadingsController : ControllerBase
         [FromQuery] int? limit
         )
     {
-        // ADD CHECK IF SOURCE EVEN EXISTS
         var source = await _readingService.GetPublicSourceAsync(sourceId);
         if (source is null)
             return NotFound();

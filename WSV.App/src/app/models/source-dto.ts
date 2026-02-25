@@ -7,5 +7,5 @@ export interface SourceDto{
 
     isEnabled: boolean;
     
-    behaviourProfile: string;
+    behaviour: string;
 }

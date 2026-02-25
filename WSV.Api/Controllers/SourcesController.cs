@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authorization;
 using WSV.Api.Data;
+using WSV.Api.Services;
 
 namespace WSV.Api.Controllers;
 
@@ -11,10 +12,14 @@ namespace WSV.Api.Controllers;
 public class SourcesController : ControllerBase
 {
     private readonly AppDbContext _context;
+    private readonly ISourceCacheService _sourceCacheService;
 
-    public SourcesController(AppDbContext context)
+    public SourcesController(
+        AppDbContext context,
+        ISourceCacheService sourceCacheService)
     {
         _context = context;
+        _sourceCacheService = sourceCacheService;
     }
 
     [HttpGet]
@@ -31,7 +36,7 @@ public class SourcesController : ControllerBase
             Name = s.Name,
             Description = s.Description,
             IsEnabled = s.IsEnabled,
-            BehaviourProfile = s.BehaviourProfile
+            Behaviour = s.Behaviour.ToString()
         }).ToList();
 
         return Ok(dtoSources);
@@ -48,6 +53,7 @@ public class SourcesController : ControllerBase
 
         source.IsEnabled = dto.IsEnabled;
         await _context.SaveChangesAsync();
+        await _sourceCacheService.ReloadSourcesAsync();
 
         return Ok(source.IsEnabled);
     }
@@ -67,7 +73,7 @@ public class SourcesController : ControllerBase
             Name = s.Name,
             Description = s.Description,
             IsEnabled = s.IsEnabled,
-            BehaviourProfile = s.BehaviourProfile
+            Behaviour = s.Behaviour.ToString()
         }).ToList();
 
         return Ok(dtoPublic);
