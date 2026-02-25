@@ -11,17 +11,20 @@ public class GeneratorService : BackgroundService
     private readonly ISourceBehaviourService _behaviourService;
     private readonly IReadingCacheService _readingCacheService;
     private readonly IDynamicBufferService _readingBufferService;
+    private readonly ISourceCacheService _sourceCacheService;
 
     public GeneratorService(
         IServiceScopeFactory scopeFactory,
         ISourceBehaviourService behaviourService,
         IReadingCacheService readingCacheService,
-        IDynamicBufferService readingBufferService)
+        IDynamicBufferService readingBufferService,
+        ISourceCacheService sourceCacheService)
     {
         _scopeFactory = scopeFactory;
         _behaviourService = behaviourService;
         _readingCacheService = readingCacheService;
         _readingBufferService = readingBufferService;
+        _sourceCacheService = sourceCacheService;
     }
 
     // Following method is called on the start and runs until shutdown
@@ -30,17 +33,8 @@ public class GeneratorService : BackgroundService
         // Loops until stopped by cancellation
         while (!stoppingToken.IsCancellationRequested)
         {
-            // Unnecessary to load sources again and again, add reactivity to Enable/disable, add flag for reload
-            // CHANGE THIS
-            List<Source> sources;
-            using(var scope = _scopeFactory.CreateScope())
-            {
-                var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-                sources = await db.Sources.AsNoTracking().ToListAsync(stoppingToken);
-            }
-
             // Generate reading for each source and enqueue it
-            foreach(var source in sources)
+            foreach(var source in _sourceCacheService.GetAllSources())
             {
                 var now = DateTimeOffset.UtcNow;
                 var reading = _behaviourService.GenerateReading(source, now);

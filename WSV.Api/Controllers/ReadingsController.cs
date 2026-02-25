@@ -44,7 +44,7 @@ public class ReadingsController : ControllerBase
         [FromQuery] int? limit
         )
     {
-        // ADD CHECK IS SOURCE EVEN EXISTS
+        // ADD CHECK IF SOURCE EVEN EXISTS
         var source = await _readingService.GetPublicSourceAsync(sourceId);
         if (source is null)
             return NotFound();

@@ -67,11 +67,12 @@ public class ReadingServiceTests
     [Fact]
     public async Task GetLagAsync_WhenAllDataAvailable_ReturnsLagDto()
     {
-        
+         DateTimeOffset timestampUnited = DateTimeOffset.UtcNow;
+
         var fakeReading = new SourceReading
         {
             SourceId = 1,
-            Timestamp = DateTimeOffset.Now
+            Timestamp = timestampUnited
         };
 
         var mockCache = new Mock<IReadingCacheService>();
@@ -83,7 +84,7 @@ public class ReadingServiceTests
         context.SourceReadings.Add(new SourceReading
         {
             SourceId = 1,
-            Timestamp = DateTimeOffset.Now.AddSeconds(-10)
+            Timestamp = timestampUnited.AddSeconds(-10)
         });
         await context.SaveChangesAsync();
 

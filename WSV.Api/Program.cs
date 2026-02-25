@@ -18,11 +18,13 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.AddSingleton<ISourceBehaviourService, SourceBehaviourService>();
 builder.Services.AddSingleton<IReadingCacheService, ReadingCacheService>();
 builder.Services.AddSingleton<IDynamicBufferService, DynamicBufferService>();
+builder.Services.AddSingleton<ISourceCacheService, SourceCacheService>();
 
 builder.Services.AddHostedService<GeneratorService>();
 builder.Services.AddHostedService<DbWriterService>();
 builder.Services.AddScoped<IPasswordService, PasswordService>();
 builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
+builder.Services.AddScoped<IReadingService, ReadingService>();
 
 builder.Services.Configure<BufferOptions>(
     builder.Configuration.GetSection("BufferOptions"));
@@ -123,7 +125,8 @@ using (var scope = app.Services.CreateScope())
         }
     }
 
-    
+    var sourceCache = services.GetRequiredService<ISourceCacheService>();
+    await sourceCache.ReloadSourcesAsync();    
 }
 
 // Configure the HTTP request pipeline.
