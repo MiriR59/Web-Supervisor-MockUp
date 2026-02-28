@@ -1,7 +1,6 @@
 using WSV.Api.Data;
 using WSV.Api.Models;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.AspNetCore.Http.HttpResults;
 
 namespace WSV.Api.Services;
 
@@ -20,36 +19,31 @@ public class ReadingService : IReadingService
 
     public async Task<List<ReadingDto>> GetHistoryAsync(int sourceId, DateTimeOffset? from, DateTimeOffset? to, int? limit)
     {
+        var start = from ?? DateTimeOffset.UtcNow.AddDays(-1);
         var end = to ?? DateTimeOffset.UtcNow;
-        var take = Math.Clamp(limit ?? 1000, 1, 5000);
+        var take = Math.Clamp(limit ?? 10, 1, 5000);
 
         var query = _context.SourceReadings
             .AsNoTracking()
             .Where(t => t.SourceId == sourceId)
+            .Where(u => u.Timestamp >= start)
             .Where(v => v.Timestamp < end);
-
-        if(from.HasValue)
-            query = query.Where(u => u.Timestamp >= from);
-
+            
         var count = await query.CountAsync();
 
         if(count > take)
-            return await GetAggregatedHistoryAsync(sourceId, from, end, take, );
+            return await GetAggregatedHistoryAsync(sourceId, start, end, take);
         
-        return await GetRawHistoryAsync(sourceId, from, end, take);
+        return await GetRawHistoryAsync(sourceId, start, end, take);
     }
 
-    public async Task<List<ReadingDto>> GetRawHistoryAsync(int sourceId, DateTimeOffset? from, DateTimeOffset to, int limit)
+    public async Task<List<ReadingDto>> GetRawHistoryAsync(int sourceId, DateTimeOffset from, DateTimeOffset to, int limit)
     {
         var query = _context.SourceReadings
             .AsNoTracking()
             .Where(t => t.SourceId == sourceId)
-            .Where(v => v.Timestamp < to);
-
-        if(from.HasValue)
-        {
-            query = query.Where(u => u.Timestamp >= from.Value);    
-        }
+            .Where(u => u.Timestamp >= from)
+            .Where(v => v.Timestamp < to);    
         
         var readings = await query   
             .OrderByDescending(r => r.Timestamp)  
@@ -72,42 +66,37 @@ public class ReadingService : IReadingService
             .ToList();
     }
 
-    public async Task<List<ReadingDto>> GetAggregatedHistoryAsync(int sourceId, DateTimeOffset? from, DateTimeOffset to, int limit)
+    public async Task<List<ReadingDto>> GetAggregatedHistoryAsync(int sourceId, DateTimeOffset from, DateTimeOffset to, int limit)
     {
-        // ADD RAW SQL QUERY, USING LINQ IS SUPER SLOW HERE, IF I HAD BIG DATA IT WOULD BE SLOW AF
-        // CHANGE ALL BELOW
-        var query = _context.SourceReadings
-            .AsNoTracking()
-            .Where(t => t.SourceId == sourceId)
-            .Where(u => u.Timestamp >= from)
-            .Where(v => v.Timestamp < to);
+        var spanSeconds = (to - from).TotalSeconds;
+        var bucketSeconds = (int)(spanSeconds / limit);
 
-        var readingsCount = query.Count();
-        int bucketSize = readingsCount / limit;
-        if(readingsCount % limit != 0)
-            bucketSize ++;
+        var sql = @"
+            SELECT
+                {0} as ""SourceId"",
+                TO_TIMESTAMP(
+                    FLOOR(EXTRACT(EPOCH FROM ""Timestamp"") / {1}) *{1}
+                ) as ""Timestamp"",
+                'Aggregated' as ""Status"",
+                CAST(AVG(""RPM"") AS INTEGER) as ""RPM"",
+                CAST(AVG(""Power"") AS INTEGER) as ""Power"",
+                AVG(""Temperature"") as ""Temperature""
+            FROM ""SourceReadings""
+            WHERE ""SourceId"" = {0}
+            AND ""Timestamp"" >= {2}
+            AND ""Timestamp"" < {3}
+            GROUP BY FLOOR(EXTRACT(EPOCH FROM ""Timestamp"") / {1})
+            ORDER BY ""Timestamp""";
 
-        double interval = (from.ToUnixTimeSeconds() - to.ToUnixTimeSeconds()) / bucketSize; // IS THIS ACCURATE? OR WILL I LOSE SOME INFO DUE TO ROUNDING>?
+        var results = await _context.Database
+            .SqlQueryRaw<ReadingDto>(sql,
+                sourceId,
+                bucketSeconds,
+                from,
+                to)
+            .ToListAsync();
 
-        for(int i = 0; i < bucketSize; i++)
-        {
-            var dtoInterval = query
-                .Where(u => u.Timestamp >= from)
-                .Where(v => v.Timestamp < to);
-            var dtoPower = dtoInterval.Average(w => w.Power);
-            var dtoRpm = dtoInterval.Average(w => w.RPM);
-            var dtoTemperature = dtoInterval.Average(w => w.Temperature);
-
-            ReadingDto dtoOut = new ReadingDto
-            {
-                SourceId = sourceId,
-                Timestamp = reading.Timestamp,
-                Status = reading.Status,
-                RPM = dtoRpm.,
-                Power = reading.Power,
-                Temperature = reading.Temperature
-            };
-        }  
+        return results;
     }
 
     public async Task<LagDto> GetLagAsync(int sourceId)

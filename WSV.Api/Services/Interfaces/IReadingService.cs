@@ -12,15 +12,15 @@ public interface IReadingService
         
     Task<List<ReadingDto>> GetRawHistoryAsync(
         int sourceId,
-        DateTimeOffset? from,
-        DateTimeOffset? to,
-        int? limit);
+        DateTimeOffset from,
+        DateTimeOffset to,
+        int limit);
 
     Task<List<ReadingDto>> GetAggregatedHistoryAsync(
         int sourceId,
-        DateTimeOffset? from,
-        DateTimeOffset? to,
-        int? limit);
+        DateTimeOffset from,
+        DateTimeOffset to,
+        int limit);
         
     Task<LagDto> GetLagAsync(int sourceId);
 
