@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using System.ComponentModel.DataAnnotations;
+using Microsoft.EntityFrameworkCore;
 using Moq;
 using WSV.Api.Data;
 using WSV.Api.Models;
@@ -19,6 +20,206 @@ public class ReadingServiceTests
     }
 
     [Fact]
+    public async Task GetRawHistoryAsync_WhenNoDataAnywhere_ReturnsEmptyList()
+    {
+        DateTimeOffset timestamp = DateTimeOffset.UtcNow;
+
+        var context = CreateContext();
+
+        var mockCache = new Mock<IReadingCacheService>();
+        mockCache
+            .Setup(c => c.GetRecentOne(11))
+            .Returns(new List<SourceReading>());
+            
+        var service = new ReadingService(context, mockCache.Object);
+
+        var result = await service.GetRawHistoryAsync(11, timestamp.AddMinutes(-30), timestamp, 10);
+
+        Assert.Empty(result);
+    }
+
+    [Fact]
+    public async Task GetRawHistoryAsync_WhenDataOnlyInDb_ReturnsDbDataList()
+    {
+        DateTimeOffset timestamp = DateTimeOffset.UtcNow;
+        
+        var context = CreateContext();
+        context.SourceReadings.Add(new SourceReading
+        {
+            SourceId = 11,
+            Timestamp = timestamp.AddMinutes(-10)
+        });
+        await context.SaveChangesAsync();
+
+        var mockCache = new Mock<IReadingCacheService>();
+        mockCache
+            .Setup(c => c.GetRecentOne(11))
+            .Returns(new List<SourceReading>());
+
+        var service = new ReadingService(context, mockCache.Object);
+
+        var result = await service.GetRawHistoryAsync(11, timestamp.AddMinutes(-30), timestamp, 10);
+
+        Assert.Single(result);
+        Assert.Equal(11, result[0].SourceId);
+        Assert.Equal(timestamp.AddMinutes(-10), result[0].Timestamp);
+    }
+
+    [Fact]
+    public async Task GetRawHistoryAsync_WhenDataOnlyInCache_ReturnsCacheDataList()
+    {
+        DateTimeOffset timestamp = DateTimeOffset.UtcNow;
+
+        var context = CreateContext();
+
+        var mockCache = new Mock<IReadingCacheService>();
+        mockCache
+            .Setup(c => c.GetRecentOne(11))
+            .Returns(new List<SourceReading>{
+                new SourceReading
+                {
+                    SourceId = 11,
+                    Timestamp = timestamp.AddMinutes(-10)
+                }
+            });
+        
+        var service = new ReadingService(context, mockCache.Object);
+
+        var result = await service.GetRawHistoryAsync(11, timestamp.AddMinutes(-30), timestamp, 10);
+    
+        Assert.Single(result);
+        Assert.Equal(11, result[0].SourceId);
+        Assert.Equal(timestamp.AddMinutes(-10), result[0].Timestamp);
+    }
+
+    [Fact]
+    public async Task GetRawHistoryAsync_WhenAllDataAvailable_ReturnsReadingDtoList()
+    {
+        DateTimeOffset timestamp = DateTimeOffset.UtcNow;
+
+        var context = CreateContext();
+        context.SourceReadings.Add(new SourceReading
+        {
+            SourceId = 11,
+            Timestamp = timestamp.AddMinutes(-10)
+        });
+        await context.SaveChangesAsync();
+
+        var mockCache = new Mock<IReadingCacheService>();
+        mockCache
+            .Setup(c => c.GetRecentOne(11))
+            .Returns(new List<SourceReading>{
+                new SourceReading
+                {
+                    SourceId = 11,
+                    Timestamp = timestamp.AddMinutes(-20)
+                }
+            });
+        
+        var service = new ReadingService(context, mockCache.Object);
+
+        var result = await service.GetRawHistoryAsync(11, timestamp.AddMinutes(-30), timestamp, 10);
+
+        Assert.Equal(2, result.Count);
+        Assert.Equal(timestamp.AddMinutes(-10), result[0].Timestamp);
+        Assert.Equal(timestamp.AddMinutes(-20), result[1].Timestamp);
+    }
+
+    [Fact]
+    public async Task GetRawHistoryAsync_WhenDataOlderThanFilter_ReturnsEmptyList()
+    {
+        DateTimeOffset timestamp = DateTimeOffset.UtcNow;
+
+        var context = CreateContext();
+        context.SourceReadings.Add(new SourceReading
+        {
+            SourceId = 11,
+            Timestamp = timestamp.AddMinutes(-40)
+        });
+        await context.SaveChangesAsync();
+
+        var mockCache = new Mock<IReadingCacheService>();
+        mockCache
+            .Setup(c => c.GetRecentOne(11))
+            .Returns(new List<SourceReading>());
+
+        var service = new ReadingService(context, mockCache.Object);
+
+        var result = await service.GetRawHistoryAsync(11, timestamp.AddMinutes(-30), timestamp, 10);
+
+        Assert.Empty(result);
+    }
+
+    [Fact]
+    public async Task GetRawHistoryAsync_WhenDataNewerThanFilter_ReturnsEmptyList()
+    {
+        DateTimeOffset timestamp = DateTimeOffset.UtcNow;
+
+        var context = CreateContext();
+        context.SourceReadings.Add(new SourceReading
+        {
+            SourceId = 11,
+            Timestamp = timestamp.AddMinutes(+10)
+        });
+        await context.SaveChangesAsync();
+
+        var mockCache = new Mock<IReadingCacheService>();
+        mockCache
+            .Setup(c => c.GetRecentOne(11))
+            .Returns(new List<SourceReading>());
+
+        var service = new ReadingService(context, mockCache.Object);
+
+        var result = await service.GetRawHistoryAsync(11, timestamp.AddMinutes(-30), timestamp, 10);
+
+        Assert.Empty(result);
+    }
+
+    [Fact]
+    public async Task GetRawHistoryAsync_WhenCacheAndDbDataOverlap_ReturnsReadingDtoListWithoutDuplicates()
+    {
+        DateTimeOffset timestamp = DateTimeOffset.UtcNow;
+
+        var context = CreateContext();
+        context.SourceReadings.AddRange(new SourceReading
+        {
+            SourceId = 11,
+            Timestamp = timestamp.AddMinutes(-10)
+        },
+        new SourceReading
+        {
+            SourceId = 11,
+            Timestamp = timestamp.AddMinutes(-15)
+        });
+        await context.SaveChangesAsync();
+
+        var mockCache = new Mock<IReadingCacheService>();
+        mockCache
+            .Setup(c => c.GetRecentOne(11))
+            .Returns(new List<SourceReading>{
+                new SourceReading
+                {
+                    SourceId = 11,
+                    Timestamp = timestamp.AddMinutes(-20)
+                },
+                new SourceReading
+                {
+                    SourceId = 11,
+                    Timestamp = timestamp.AddMinutes(-15)
+                }
+            });
+        
+        var service = new ReadingService(context, mockCache.Object);
+
+        var result = await service.GetRawHistoryAsync(11, timestamp.AddMinutes(-30), timestamp, 10);
+
+        Assert.Equal(3, result.Count);
+        Assert.Equal(timestamp.AddMinutes(-10), result[0].Timestamp);
+        Assert.Equal(timestamp.AddMinutes(-15), result[1].Timestamp);
+        Assert.Equal(timestamp.AddMinutes(-20), result[2].Timestamp);
+    }
+
+    [Fact]
     public async Task GetLagAsync_WhenNoLiveData_ReturnsNoLiveDataState()
     {
         // Create empty in-memory db - no readings needed for this
@@ -28,18 +229,18 @@ public class ReadingServiceTests
         // Create fake cache that returns null for any sourceId
         var mockCache = new Mock<IReadingCacheService>();
         mockCache
-            .Setup(c => c.GetLatestOne(1))
-            .Returns((SourceReading?)null); // simulates empty cache
+            .Setup(c => c.GetLatestOne(11))
+            .Returns((SourceReading?)null);
 
         // Wire up the service with fake dependencies
         var service = new ReadingService(context, mockCache.Object);
 
         // --- ACT --- call the method we are testing
-        var result = await service.GetLagAsync(1);
+        var result = await service.GetLagAsync(11);
 
         // --- ASSERT --- verify the result against what we expect
         Assert.Equal(LagState.NoLiveData, result.State);
-        Assert.Equal(1, result.SourceId);
+        Assert.Equal(11, result.SourceId);
     }
 
     [Fact]
@@ -49,18 +250,18 @@ public class ReadingServiceTests
 
         var fakeReading = new SourceReading
         {
-            SourceId = 1,
+            SourceId = 11,
             Timestamp = DateTimeOffset.Now
         };
 
         var mockCache = new Mock<IReadingCacheService>();
         mockCache
-            .Setup(c => c.GetLatestOne(1))
+            .Setup(c => c.GetLatestOne(11))
             .Returns(fakeReading);
         
         var service = new ReadingService(context, mockCache.Object);
 
-        var result = await service.GetLagAsync(1);
+        var result = await service.GetLagAsync(11);
 
         Assert.Equal(LagState.DbEmpty, result.State);
         Assert.Equal(fakeReading.Timestamp, result.LatestGenerated);
@@ -74,25 +275,25 @@ public class ReadingServiceTests
         var context = CreateContext();
         context.SourceReadings.Add(new SourceReading
         {
-            SourceId = 1,
+            SourceId = 11,
             Timestamp = timestampUnited.AddSeconds(-10)
         });
         await context.SaveChangesAsync();
 
         var fakeReading = new SourceReading
         {
-            SourceId = 1,
+            SourceId = 11,
             Timestamp = timestampUnited
         };
 
         var mockCache = new Mock<IReadingCacheService>();
         mockCache
-            .Setup(c => c.GetLatestOne(1))
+            .Setup(c => c.GetLatestOne(11))
             .Returns(fakeReading);
         
         var service = new ReadingService(context, mockCache.Object);
 
-        var result = await service.GetLagAsync(1);
+        var result = await service.GetLagAsync(11);
 
         Assert.Equal(LagState.Ok, result.State);
         Assert.Equal(10, result.DbLag);
@@ -202,4 +403,5 @@ public class ReadingServiceTests
         Assert.NotNull(result);
         Assert.Equal("Source11", result.Name);
     }
+
 }
